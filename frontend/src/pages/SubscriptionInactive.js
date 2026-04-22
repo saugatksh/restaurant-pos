@@ -26,54 +26,30 @@ export default function SubscriptionInactive({ restaurantName }) {
   };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "var(--bg-primary)",
-      padding: 24,
-    }}>
-      <div style={{
-        maxWidth: 480,
-        width: "100%",
-        background: "var(--bg-card)",
-        borderRadius: 20,
-        padding: "40px 36px",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
-        textAlign: "center",
-        border: "1px solid var(--border)",
-      }}>
+    <div className="subscription-inactive-root">
+      <div className="subscription-inactive-card">
         {/* Icon */}
         <div style={{
-          width: 72,
-          height: 72,
-          borderRadius: "50%",
+          width: 72, height: 72, borderRadius: "50%",
           background: "rgba(239,68,68,0.12)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 36,
-          margin: "0 auto 20px",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 36, margin: "0 auto 20px",
         }}>
           🔒
         </div>
 
-        <h2 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>
+        <h2 style={{ margin: "0 0 8px", fontSize: "clamp(18px,4vw,22px)", fontWeight: 700, color: "var(--text-primary)" }}>
           Service Suspended
         </h2>
 
         {(restaurantName || user?.restaurant_name) && (
           <div style={{
             display: "inline-block",
-            background: "var(--bg-secondary)",
+            background: "var(--bg-surface)",
             border: "1px solid var(--border)",
-            borderRadius: 8,
-            padding: "4px 14px",
-            fontSize: 13,
-            color: "var(--text-secondary)",
-            marginBottom: 20,
-            fontWeight: 600,
+            borderRadius: 8, padding: "4px 14px",
+            fontSize: 13, color: "var(--text-secondary)",
+            marginBottom: 20, fontWeight: 600,
           }}>
             🍽️ {restaurantName || user?.restaurant_name}
           </div>
@@ -86,17 +62,12 @@ export default function SubscriptionInactive({ restaurantName }) {
           staff accounts, and inventory are safely preserved.
         </p>
 
-        {/* Data preserved callout */}
         <div style={{
           background: "rgba(59,130,246,0.08)",
           border: "1px solid rgba(59,130,246,0.3)",
-          borderRadius: 12,
-          padding: "14px 18px",
-          marginBottom: 28,
-          textAlign: "left",
-          fontSize: 13,
-          color: "var(--text-secondary)",
-          lineHeight: 1.7,
+          borderRadius: 12, padding: "14px 18px",
+          marginBottom: 28, textAlign: "left",
+          fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7,
         }}>
           <div style={{ fontWeight: 700, marginBottom: 8, color: "var(--text-primary)" }}>💾 Your data is safe:</div>
           <ul style={{ margin: 0, paddingLeft: 20 }}>
@@ -112,22 +83,15 @@ export default function SubscriptionInactive({ restaurantName }) {
         </div>
 
         <div style={{
-          background: "var(--bg-secondary)",
-          borderRadius: 10,
-          padding: "14px 18px",
-          marginBottom: 28,
-          fontSize: 13,
-          color: "var(--text-muted)",
+          background: "var(--bg-surface)",
+          borderRadius: 10, padding: "14px 18px",
+          marginBottom: 28, fontSize: 13, color: "var(--text-muted)",
         }}>
           📞 Please contact your <strong>Super Admin</strong> to renew the subscription
           and restore service access.
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="btn btn-secondary"
-          style={{ width: "100%" }}
-        >
+        <button onClick={handleLogout} className="btn btn-secondary" style={{ width: "100%", justifyContent: "center", padding: "13px" }}>
           ← Back to Login
         </button>
       </div>

@@ -44,7 +44,7 @@ export default function LoginPage({ role, title, subtitle, icon, loginEndpoint, 
 
   return (
     <div className="login-page">
-      <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
+      <div style={{ position: "absolute", top: 16, right: 16, zIndex: 10 }}>
         <button className="theme-toggle" onClick={toggleTheme}>
           <span>{theme === "dark" ? "🌙" : "☀️"}</span>
           <div className="toggle-track"><div className="toggle-thumb" /></div>
@@ -81,6 +81,7 @@ export default function LoginPage({ role, title, subtitle, icon, loginEndpoint, 
                 placeholder="Enter your username"
                 value={form.username}
                 onChange={e => setForm({ ...form, username: e.target.value })}
+                autoComplete="username"
                 required
               />
             </div>
@@ -93,11 +94,12 @@ export default function LoginPage({ role, title, subtitle, icon, loginEndpoint, 
               placeholder="Enter your password"
               value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
+              autoComplete="current-password"
               required
             />
           </div>
 
-          <button type="submit" className="login-btn" disabled={loading}>
+          <button type="submit" className="btn btn-primary login-btn" disabled={loading}>
             {loading ? <><span className="spinner-sm" /> Signing in...</> : `Sign In as ${title}`}
           </button>
         </form>

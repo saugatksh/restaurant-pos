@@ -296,33 +296,33 @@ export default function CashCounterPanel() {
       <header className="no-print" style={{
         background: "linear-gradient(135deg,#1e293b,#0f172a)",
         borderBottom: "1px solid rgba(255,255,255,0.08)",
-        padding: "12px 28px", display: "flex", alignItems: "center", justifyContent: "space-between",
-        flexShrink: 0, boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+        padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexShrink: 0, boxShadow: "0 4px 24px rgba(0,0,0,0.3)", gap: 8, flexWrap: "wrap",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 42, height: 42, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, boxShadow: "0 0 16px rgba(99,102,241,0.4)" }}>💰</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 38, height: 38, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>💰</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "#f1f5f9" }}>Cash Counter</div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#f1f5f9" }}>Cash Counter</div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{user?.restaurant_name} · {user?.name}</div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 20, padding: "6px 16px", display: "flex", gap: 16, fontSize: 12 }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 20, padding: "5px 12px", display: "flex", gap: 10, fontSize: 11 }}>
             <span style={{ color: "#fbbf24", fontWeight: 700 }}>⏳ {orders.filter(o => ["pending","preparing"].includes(o.status)).length} Active</span>
             <span style={{ color: "#34d399", fontWeight: 700 }}>✅ {orders.filter(o => o.status === "served").length} Ready</span>
           </div>
-          <button onClick={handleNewTakeaway} style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 800, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>📦 Takeaway</button>
+          <button onClick={handleNewTakeaway} style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)", color: "#fff", border: "none", borderRadius: 8, padding: "7px 12px", fontWeight: 800, cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>📦 Takeaway</button>
           <button className="btn btn-secondary btn-sm" onClick={loadOrders}>↻</button>
-          <button className="theme-toggle" onClick={toggleTheme}><span>{theme === "dark" ? "🌙" : "☀️"}</span></button>
+          <button className="theme-toggle" onClick={toggleTheme} style={{ padding: "6px 10px" }}><span>{theme === "dark" ? "🌙" : "☀️"}</span></button>
           <button className="btn btn-ghost btn-sm" onClick={handleLogout} style={{ color: "rgba(255,255,255,0.6)" }}>🚪</button>
         </div>
       </header>
 
       {/* MAIN BODY */}
-      <div className="no-print" style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 440px", overflow: "hidden" }}>
+      <div className="no-print" style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr min(440px, 40vw)", overflow: "hidden" }}>
 
         {/* LEFT: ORDERS LIST */}
-        <div style={{ overflow: "auto", padding: 24 }}>
+        <div style={{ overflow: "auto", padding: "clamp(12px, 2vw, 24px)" }}>
           <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 16 }}>🧾 Active Orders</div>
 
           {loading ? (

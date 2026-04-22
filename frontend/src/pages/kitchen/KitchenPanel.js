@@ -60,37 +60,35 @@ export default function KitchenPanel() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-base)", display: "flex", flexDirection: "column" }}>
       <header style={{
-        background: "var(--bg-sidebar)", borderBottom: "1px solid var(--border)",
-        padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between",
-        flexShrink: 0,
+        background: "var(--bg-sidebar, var(--bg-card))", borderBottom: "1px solid var(--border)",
+        padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexShrink: 0, gap: 10, flexWrap: "wrap",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{
-            width: 42, height: 42, background: "var(--gradient-brand)", borderRadius: 12,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 20, boxShadow: "var(--shadow-glow)",
+            width: 40, height: 40, background: "var(--gradient-brand, linear-gradient(135deg,#ef4444,#b91c1c))", borderRadius: 12,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0,
           }}>👨‍🍳</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Kitchen Station</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{user?.restaurant_name} · {user?.name}</div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>Kitchen Station</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{user?.restaurant_name} · {user?.name}</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ display: "flex", gap: 12, padding: "8px 16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div className="kitchen-header-stats" style={{ display: "flex", gap: 6, padding: "6px 12px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 20 }}>
             <span style={{ fontSize: 12, color: "var(--warning)", fontWeight: 700 }}>🕐 {pending.length} Pending</span>
-            <span style={{ fontSize: 12, color: "var(--info)", fontWeight: 700 }}>🔥 {preparing.length} Preparing</span>
+            <span style={{ fontSize: 12, color: "var(--info, #38bdf8)", fontWeight: 700 }}>🔥 {preparing.length} Preparing</span>
             {takeawayCount > 0 && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>📦 {takeawayCount} Takeaway</span>}
           </div>
-          <button className="theme-toggle" onClick={toggleTheme}>
+          <button className="theme-toggle" onClick={toggleTheme} style={{ padding: "7px 10px" }}>
             <span>{theme === "dark" ? "🌙" : "☀️"}</span>
-            <div className="toggle-track"><div className="toggle-thumb" /></div>
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={load}>↻ Refresh</button>
-          <button className="btn btn-ghost btn-sm" onClick={handleLogout}>🚪 Logout</button>
+          <button className="btn btn-secondary btn-sm" onClick={load}>↻</button>
+          <button className="btn btn-ghost btn-sm" onClick={handleLogout}>🚪</button>
         </div>
       </header>
 
-      <div style={{ flex: 1, overflow: "auto", padding: 24 }}>
+      <div style={{ flex: 1, overflow: "auto", padding: "clamp(12px, 3vw, 24px)" }}>
         {loading ? (
           <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div>
         ) : orders.length === 0 ? (

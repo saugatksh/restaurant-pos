@@ -10,14 +10,17 @@ const TABS = [
 
 export default function SuperAdminDashboard() {
   const [tab, setTab] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout, theme, toggleTheme } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); navigate("/superadmin/login"); };
+  const handleTab = (id) => { setTab(id); setSidebarOpen(false); };
 
   return (
     <div className="dashboard">
-      <aside className="sidebar">
+      <div className={`sidebar-overlay ${sidebarOpen ? "visible" : ""}`} onClick={() => setSidebarOpen(false)} />
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-brand">
           <div className="brand-logo">
             <div className="logo-icon">⚡</div>
@@ -28,7 +31,7 @@ export default function SuperAdminDashboard() {
         </div>
         <nav>
           {TABS.map(t => (
-            <button key={t.id} className={`nav-item ${tab === t.id ? "active" : ""}`} onClick={() => setTab(t.id)}>
+            <button key={t.id} className={`nav-item ${tab === t.id ? "active" : ""}`} onClick={() => handleTab(t.id)}>
               <span className="nav-icon">{t.icon}</span>{t.label}
             </button>
           ))}
@@ -48,6 +51,13 @@ export default function SuperAdminDashboard() {
         </div>
       </aside>
       <div className="main-content">
+        <div className="mobile-topbar">
+          <button className="sidebar-toggle" onClick={() => setSidebarOpen(v => !v)}>☰</button>
+          <span className="mobile-topbar-title">
+            {TABS.find(t => t.id === tab)?.icon} {TABS.find(t => t.id === tab)?.label || "Super Admin"}
+          </span>
+          <div style={{ width: 40 }} />
+        </div>
         {tab === "overview" && <SAOverviewTab />}
         {tab === "restaurants" && <SARestaurantsTab />}
       </div>

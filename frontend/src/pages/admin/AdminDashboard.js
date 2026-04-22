@@ -26,8 +26,12 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState("overview");
   const [notifs, setNotifs] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout, theme, toggleTheme } = useAuth();
   const navigate = useNavigate();
+
+  // Close sidebar when tab changes on mobile
+  const handleTabChange = (id) => { setTab(id); setSidebarOpen(false); };
 
   const loadNotifs = React.useCallback(async () => {
     try {
@@ -66,12 +70,18 @@ export default function AdminDashboard() {
 
   return (
     <div className="dashboard">
-      <aside className="sidebar">
+      {/* Sidebar overlay (mobile) */}
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? "visible" : ""}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-brand">
           <div className="brand-logo">
             {user?.restaurant_logo
               ? <img src={user.restaurant_logo} alt="logo"
-                  style={{ width: 40, height: 40, borderRadius: 10, objectFit: "cover" }} />
+                  style={{ width: 36, height: 36, borderRadius: 10, objectFit: "cover" }} />
               : <div className="logo-icon">🍽️</div>
             }
             <h2>RestoPOS</h2>
@@ -87,7 +97,7 @@ export default function AdminDashboard() {
                 <button
                   key={t.id}
                   className={`nav-item ${tab === t.id ? "active" : ""}`}
-                  onClick={() => setTab(t.id)}
+                  onClick={() => handleTabChange(t.id)}
                 >
                   <span className="nav-icon">{t.icon}</span>{t.label}
                   {t.id === "notifications" && unreadCount > 0 && (
@@ -114,6 +124,21 @@ export default function AdminDashboard() {
       </aside>
 
       <div className="main-content">
+        {/* Mobile top bar */}
+        <div className="mobile-topbar">
+          <button className="sidebar-toggle" onClick={() => setSidebarOpen(v => !v)}>☰</button>
+          <span className="mobile-topbar-title">
+            {TABS.find(t => t.id === tab)?.icon} {TABS.find(t => t.id === tab)?.label || "Admin"}
+          </span>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            {unreadCount > 0 && (
+              <div className="notif-bell-wrap">
+                <button className="btn btn-ghost btn-sm" onClick={() => handleTabChange("notifications")} style={{ fontSize: 16, padding: "6px 8px" }}>🔔</button>
+                <span className="notif-count">{unreadCount}</span>
+              </div>
+            )}
+          </div>
+        </div>
         {tab === "overview"       && <OverviewTab onNotifClick={() => setTab("notifications")} unreadCount={unreadCount} />}
         {tab === "orders"         && <OrdersTab />}
         {tab === "kitchen"        && <KitchenTab />}

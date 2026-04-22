@@ -148,7 +148,35 @@ mark{background:rgba(245,158,11,0.3);color:inherit;border-radius:2px;padding:0 1
 .modal-close:hover{color:var(--text-primary);}
 
 .flex-center{display:flex;align-items:center;justify-content:center;}
+
+/* ── Responsive ── */
+@media(max-width:767px){
+  .table-grid{grid-template-columns:repeat(3,1fr)!important;gap:8px!important;}
+  .table-tile{padding:12px 8px;min-height:76px;}
+  .tile-num{font-size:18px;}
+  .modal-overlay{align-items:flex-end;padding:0;}
+  .modal{border-radius:20px 20px 0 0;max-width:100%;max-height:92vh;}
+  .search-input{font-size:16px;} /* prevent iOS zoom */
+  /* Stack order view panels vertically */
+  div[style*="gridTemplateColumns:\"1fr clamp"]{
+    grid-template-columns:1fr!important;
+  }
+  div[style*="minmax(155px"]{
+    grid-template-columns:repeat(2,1fr)!important;
+  }
+}
+@media(max-width:479px){
+  .table-grid{grid-template-columns:repeat(2,1fr)!important;}
+  .btn{font-size:13px;padding:8px 13px;}
+  .cat-pill{padding:6px 11px;font-size:11px;}
+  div[style*="minmax(155px"]{
+    grid-template-columns:1fr 1fr!important;
+  }
+}
+/* Touch tap highlight */
+.btn,.nav-item,.table-tile,.menu-card,.cat-pill,.sub-pill{-webkit-tap-highlight-color:transparent;}
 `;
+
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
 const ROUND_COLORS    = ["#6366f1","#10b981","#f59e0b","#ec4899","#06b6d4","#8b5cf6"];
@@ -390,42 +418,42 @@ export default function WaiterPanel() {
     <div style={{ minHeight:"100vh", background:"var(--bg-base)", display:"flex", flexDirection:"column", fontFamily:"var(--font)", color:"var(--text-primary)", transition:"background 0.3s,color 0.3s" }}>
 
       {/* ══ HEADER ═══════════════════════════════════════════════════════ */}
-      <header style={{ background:"var(--sidebar-bg)", borderBottom:"1px solid var(--border)", padding:"0 24px", height:64, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:200, boxShadow:"var(--shadow-sm)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          {view === "order" && <button className="btn btn-ghost btn-sm" onClick={goBack} style={{ padding:"6px 12px" }}>← Back</button>}
-          <div style={{ width:36, height:36, borderRadius:10, background:"var(--gradient-brand)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:17 }}>🧑‍🍽️</div>
+      <header style={{ background:"var(--sidebar-bg)", borderBottom:"1px solid var(--border)", padding:"0 clamp(12px,3vw,24px)", height:60, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:200, boxShadow:"var(--shadow-sm)", flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          {view === "order" && <button className="btn btn-ghost btn-sm" onClick={goBack} style={{ padding:"6px 10px" }}>←</button>}
+          <div style={{ width:34, height:34, borderRadius:10, background:"var(--gradient-brand)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>🧑‍🍽️</div>
           <div>
-            <div style={{ fontWeight:800, fontSize:15, letterSpacing:"-0.02em" }}>Waiter Panel</div>
-            <div style={{ fontSize:11, color:"var(--text-muted)", fontWeight:500 }}>{user?.restaurant_name} · {user?.name}</div>
+            <div style={{ fontWeight:800, fontSize:14, letterSpacing:"-0.02em" }}>Waiter Panel</div>
+            <div style={{ fontSize:11, color:"var(--text-muted)", fontWeight:500 }}>{user?.restaurant_name}</div>
           </div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <button className="theme-btn" onClick={() => setLocalTheme(t => t==="dark"?"light":"dark")}>
+        <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+          <button className="theme-btn" onClick={() => setLocalTheme(t => t==="dark"?"light":"dark")} style={{ padding:"6px 10px" }}>
             <span style={{ fontSize:14 }}>{localTheme==="dark"?"🌙":"☀️"}</span>
             <div className="tog-track"><div className="tog-thumb" style={{ left:localTheme==="dark"?"16px":"2px" }} /></div>
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleLogout} style={{ padding:"7px 11px" }}>🚪</button>
+          <button className="btn btn-ghost btn-sm" onClick={handleLogout} style={{ padding:"7px 10px" }}>🚪</button>
         </div>
       </header>
 
-      <div style={{ flex:1, overflow:"auto", padding:"20px 22px" }}>
+      <div style={{ flex:1, overflow:"auto", padding:"clamp(12px,3vw,20px) clamp(12px,3vw,22px)" }}>
 
         {/* ═══ TABLES VIEW ═════════════════════════════════════════════ */}
         {view === "tables" && (
           <div style={{ maxWidth:1200, margin:"0 auto", animation:"fadeIn 0.25s ease" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:22, flexWrap:"wrap", gap:12 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18, flexWrap:"wrap", gap:10 }}>
               <div>
-                <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:"-0.03em" }}>Floor Plan</h1>
+                <h1 style={{ fontSize:"clamp(18px,4vw,22px)", fontWeight:800, letterSpacing:"-0.03em" }}>Floor Plan</h1>
                 <p style={{ fontSize:13, color:"var(--text-muted)", marginTop:2 }}>Select a table to start or view an order</p>
               </div>
-              <div style={{ display:"flex", gap:8 }}>
+              <div style={{ display:"flex", gap:7 }}>
                 <button className="btn btn-primary" onClick={startTakeaway}>📦 New Takeaway</button>
                 <button className="btn btn-secondary btn-sm" onClick={loadData}>↻ Refresh</button>
               </div>
             </div>
 
             {Object.keys(specials).length > 0 && (
-              <div style={{ background:"var(--accent-bg)", border:"1px solid var(--accent-border)", borderRadius:14, padding:"13px 18px", marginBottom:20, display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+              <div style={{ background:"var(--accent-bg)", border:"1px solid var(--accent-border)", borderRadius:14, padding:"12px 16px", marginBottom:18, display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
                 <span>⭐</span>
                 <span style={{ fontWeight:800, color:"var(--accent)", fontSize:13 }}>Today's Specials</span>
                 {Object.values(specials).map((sp, i) => (
@@ -461,7 +489,7 @@ export default function WaiterPanel() {
 
         {/* ═══ ORDER VIEW ══════════════════════════════════════════════ */}
         {view === "order" && (
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 382px", gap:20, maxWidth:1280, margin:"0 auto", animation:"fadeIn 0.25s ease" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr clamp(300px, 32vw, 382px)", gap:"clamp(12px,2vw,20px)", maxWidth:1280, margin:"0 auto", animation:"fadeIn 0.25s ease" }}>
 
             {/* ╔══ LEFT: MENU ══╗ */}
             <div style={{ minWidth:0 }}>
