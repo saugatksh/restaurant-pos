@@ -285,6 +285,19 @@ export default function WaiterPanel() {
     setRoundLoading(false);
   };
 
+  const startTableTakeaway = async () => {
+    if (!selectedTable || allRounds.some(r => r.order.status === "draft")) return;
+    setRoundLoading(true);
+    try {
+      const res = await API.post("/orders", { table_id: selectedTable.id, order_type: "takeaway" });
+      const newIdx = allRounds.length;
+      setAllRounds(prev => [...prev, { order: res.data, items: [], roundNumber: prev.length + 1 }]);
+      setDraftRoundIdx(newIdx);
+      setTimeout(() => summaryRef.current?.scrollTo({ top: summaryRef.current.scrollHeight, behavior: "smooth" }), 200);
+    } catch {}
+    setRoundLoading(false);
+  };
+
   const startTakeaway = async () => {
     setRoundLoading(true);
     try {
@@ -492,7 +505,10 @@ export default function WaiterPanel() {
                         <div style={{ fontWeight:700, fontSize:14 }}>Need more items?</div>
                         <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:3 }}>Only new items from this round go to kitchen.</div>
                       </div>
-                      <button className="btn btn-primary btn-sm" onClick={startNewRound}>➕ {getRoundOrdinal(allRounds.length)} Round</button>
+                      <div style={{ display:"flex", gap:8 }}>
+                        <button className="btn btn-primary btn-sm" onClick={startNewRound}>➕ {getRoundOrdinal(allRounds.length)} Round</button>
+                        <button className="btn btn-secondary btn-sm" onClick={startTableTakeaway}>📦 Takeaway</button>
+                      </div>
                     </div>
                   )}
 
@@ -672,7 +688,8 @@ export default function WaiterPanel() {
                       <div key={round.order.id}>
                         <div style={{ padding:"9px 18px", background:isDraft?`${color}12`:"var(--bg-surface)", borderBottom:"1px solid var(--border)", borderTop:idx>0?"2px solid var(--border)":"none", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                           <span style={{ fontSize:11, fontWeight:800, letterSpacing:"0.06em", textTransform:"uppercase", color:isDraft?color:"var(--text-muted)" }}>
-                            {getRoundLabel(idx)}{isDraft&&<span style={{ fontWeight:500, textTransform:"none", marginLeft:6, fontSize:10 }}>— adding…</span>}
+                            {round.order.order_type === "takeaway" ? "📦 Takeaway" : getRoundLabel(idx)}
+                            {isDraft&&<span style={{ fontWeight:500, textTransform:"none", marginLeft:6, fontSize:10 }}>— adding…</span>}
                           </span>
                           {isSent ? <span style={{ fontSize:11, color:"var(--success)", fontWeight:700 }}>✓ Sent</span> : <span style={{ fontSize:11, color, fontWeight:600 }}>Draft</span>}
                         </div>
@@ -696,7 +713,7 @@ export default function WaiterPanel() {
                         </div>
 
                         <div style={{ padding:"7px 18px", display:"flex", justifyContent:"space-between", fontSize:12, borderBottom:"1px solid var(--border)", background:"var(--bg-surface)" }}>
-                          <span style={{ color:"var(--text-muted)" }}>{getRoundLabel(idx)} subtotal</span>
+                          <span style={{ color:"var(--text-muted)" }}>{round.order.order_type === "takeaway" ? "📦 Takeaway" : getRoundLabel(idx)} subtotal</span>
                           <span style={{ fontWeight:700, color:isSent?"var(--text-primary)":color }}>Rs. {Number(round.order?.total||0).toLocaleString()}</span>
                         </div>
                       </div>
@@ -714,7 +731,7 @@ export default function WaiterPanel() {
                     )}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <div>
-                        <div style={{ fontWeight:800, fontSize:15, letterSpacing:"-0.02em" }}>Grand Total</div>
+                        <div style={{ fontWeight:800, fontSize:15, letterSpacing:"-0.02em" }}>Grand Total : </div>
                         {taxEnabled && <div style={{ fontSize:10, color:"var(--text-muted)", marginTop:1 }}>VAT inclusive</div>}
                       </div>
                       <span style={{ color:"var(--success)", fontSize:20, fontWeight:900, letterSpacing:"-0.03em" }}>Rs. {grandTotal.toLocaleString()}</span>
@@ -725,7 +742,7 @@ export default function WaiterPanel() {
                 {draftRound && draftRound.items.length > 0 && (
                   <div style={{ padding:"14px 16px", borderTop:"1px solid var(--border)" }}>
                     <button className="btn btn-primary" style={{ width:"100%", fontWeight:800, fontSize:14, padding:"13px 0", borderRadius:12, background:`linear-gradient(135deg,${ROUND_COLORS[draftRoundIdx%6]},${ROUND_COLORS[(draftRoundIdx+1)%6]})` }} onClick={() => setConfirmModal(true)}>
-                      🚀 Send {getRoundLabel(draftRoundIdx)} to Kitchen
+                      🚀 Send {draftRound?.order.order_type === "takeaway" ? "Takeaway Order" : getRoundLabel(draftRoundIdx)} to Kitchen
                     </button>
                     <div style={{ fontSize:11, color:"var(--text-muted)", textAlign:"center", marginTop:7 }}>Only new items — no duplicates sent</div>
                   </div>
@@ -737,7 +754,10 @@ export default function WaiterPanel() {
                       ✅ All rounds sent to kitchen
                     </div>
                     {activeOrderType !== "takeaway" && (
-                      <button className="btn btn-secondary" style={{ width:"100%", fontWeight:700, fontSize:13 }} onClick={startNewRound}>➕ Add {getRoundOrdinal(allRounds.length)} Order</button>
+                      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                        <button className="btn btn-secondary" style={{ width:"100%", fontWeight:700, fontSize:13 }} onClick={startNewRound}>➕ Add {getRoundOrdinal(allRounds.length)} Order</button>
+                        <button className="btn btn-secondary" style={{ width:"100%", fontWeight:700, fontSize:13 }} onClick={startTableTakeaway}>📦 Add Takeaway to Table</button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -754,11 +774,17 @@ export default function WaiterPanel() {
             <div className="modal-hdr">
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <div style={{ width:38, height:38, borderRadius:10, background:`${ROUND_COLORS[draftRoundIdx%6]}20`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>
-                  {activeOrderType==="takeaway"?"📦":draftRoundIdx===0?"🍽️":"➕"}
+                  {draftRound?.order.order_type === "takeaway" ? "📦" : draftRoundIdx === 0 ? "🍽️" : "➕"}
                 </div>
                 <div>
-                  <h3 style={{ fontWeight:800, fontSize:16, letterSpacing:"-0.02em" }}>Send {getRoundLabel(draftRoundIdx)} to Kitchen</h3>
-                  <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:2 }}>{activeOrderType==="takeaway"?"Takeaway order":`Table ${selectedTable?.table_number}`}</div>
+                  <h3 style={{ fontWeight:800, fontSize:16, letterSpacing:"-0.02em" }}>
+                    Send {draftRound?.order.order_type === "takeaway" ? "Takeaway Order" : getRoundLabel(draftRoundIdx)} to Kitchen
+                  </h3>
+                  <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:2 }}>
+                    {draftRound?.order.order_type === "takeaway"
+                      ? selectedTable ? `Takeaway — Table ${selectedTable.table_number}` : "Takeaway order"
+                      : `Table ${selectedTable?.table_number}`}
+                  </div>
                 </div>
               </div>
               <button className="modal-close" onClick={() => setConfirmModal(false)}>✕</button>

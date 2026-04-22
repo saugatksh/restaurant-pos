@@ -94,10 +94,10 @@ router.post("/", authMiddleware, async (req, res) => {
     const waiter_id = req.user.id;
     const type = order_type || (table_id ? "table" : "takeaway");
 
-    // If not addendum, check for existing draft orders on this table
+    // If not addendum, check for existing draft orders on this table (only count table-type orders, not takeaway)
     if (type === "table" && table_id && !addendum) {
       const existing = await pool.query(
-        "SELECT id FROM orders WHERE table_id=$1 AND restaurant_id=$2 AND status NOT IN ('paid','closed','credit_pending')",
+        "SELECT id FROM orders WHERE table_id=$1 AND restaurant_id=$2 AND order_type='table' AND status NOT IN ('paid','closed','credit_pending')",
         [table_id, rid]
       );
       if (existing.rows.length > 0) {
@@ -133,12 +133,14 @@ router.get("/:id", authMiddleware, async (req, res) => {
     );
     const items = await pool.query(
       `SELECT m.name, m.category,
+              m.id AS menu_id,
+              MIN(oi.id) AS id,
               SUM(oi.quantity) AS quantity,
               SUM(oi.price) AS price
        FROM order_items oi
        JOIN menu m ON oi.menu_id = m.id
        WHERE oi.order_id=$1
-       GROUP BY m.name, m.category
+       GROUP BY m.name, m.category, m.id
        ORDER BY m.name ASC`,
       [req.params.id]
     );
@@ -221,12 +223,12 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
   }
 });
 
-// PAY ORDER — calculates tax, stores tax_amount, marks all table rounds paid, frees table
+// PAY ORDER — calculates tax, applies discount, stores amounts, marks all rounds paid
 router.put("/:id/pay", authMiddleware, async (req, res) => {
   const rid = req.user.restaurant_id;
   try {
     const { id } = req.params;
-    const { method } = req.body;
+    const { method, discount_amount: rawDiscount } = req.body;
 
     const orderRes = await pool.query("SELECT * FROM orders WHERE id=$1", [id]);
     if (!orderRes.rows.length) return res.status(404).json({ error: "Order not found" });
@@ -251,9 +253,16 @@ router.put("/:id/pay", authMiddleware, async (req, res) => {
       combinedSubtotal = parseFloat(primaryOrder.total);
     }
 
-    // Calculate tax
+    // Calculate tax on subtotal (discount does NOT reduce tax base)
     const taxAmount = tax_enabled ? parseFloat((combinedSubtotal * tax_rate / 100).toFixed(2)) : 0;
-    const grandTotal = parseFloat((combinedSubtotal + taxAmount).toFixed(2));
+    const totalWithTax = parseFloat((combinedSubtotal + taxAmount).toFixed(2));
+
+    // Discount is applied after tax — clamp to [0, totalWithTax]
+    const discountAmount = Math.min(
+      Math.max(0, parseFloat(rawDiscount) || 0),
+      totalWithTax
+    );
+    const grandTotal = parseFloat((totalWithTax - discountAmount).toFixed(2));
 
     // Mark secondary rounds as 'closed' (excluded from stats), primary as 'paid' with grand total
     const secondaryIds = allRoundIds.filter(r2 => r2 !== parseInt(id));
@@ -265,11 +274,11 @@ router.put("/:id/pay", authMiddleware, async (req, res) => {
       );
     }
 
-    // Update primary order: store grand total (incl. tax), tax_amount, mark paid
+    // Update primary order: store grand total (after discount), tax_amount, discount_amount
     await pool.query(
       `UPDATE orders SET status='paid', payment_method=$1,
-        total=$2, tax_amount=$3, updated_at=NOW() WHERE id=$4`,
-      [method, grandTotal, taxAmount, parseInt(id)]
+        total=$2, tax_amount=$3, discount_amount=$4, updated_at=NOW() WHERE id=$5`,
+      [method, grandTotal, taxAmount, discountAmount, parseInt(id)]
     );
 
     // Free the table
@@ -282,6 +291,7 @@ router.put("/:id/pay", authMiddleware, async (req, res) => {
       message: "Payment successful",
       subtotal: combinedSubtotal,
       tax_amount: taxAmount,
+      discount_amount: discountAmount,
       grand_total: grandTotal,
       rounds_paid: allRoundIds.length,
     });
@@ -313,12 +323,36 @@ router.get("/:id/bill", authMiddleware, async (req, res) => {
 
     let allOrderIds = [parseInt(req.params.id)];
 
-    // Gather ALL rounds for this table (including closed secondary rounds)
     if (mainOrder.table_id) {
-      const relatedOrders = await pool.query(
-        "SELECT id FROM orders WHERE table_id=$1 AND restaurant_id=$2 ORDER BY id ASC",
-        [mainOrder.table_id, mainOrder.restaurant_id]
-      );
+      let relatedOrders;
+
+      if (mainOrder.status === "paid") {
+        // Receipt view (post-payment): find only the rounds closed in the same
+        // payment transaction — they share an updated_at within a 10-second window.
+        relatedOrders = await pool.query(
+          `SELECT id FROM orders
+           WHERE table_id=$1 AND restaurant_id=$2
+             AND (
+               id = $3
+               OR (status = 'closed'
+                   AND ABS(EXTRACT(EPOCH FROM (updated_at - $4::timestamptz))) < 10)
+             )
+           ORDER BY id ASC`,
+          [mainOrder.table_id, mainOrder.restaurant_id,
+           parseInt(req.params.id), mainOrder.updated_at]
+        );
+      } else {
+        // Live bill view (pre-payment): only include rounds that are still active
+        // — never include paid/closed orders from previous sessions.
+        relatedOrders = await pool.query(
+          `SELECT id FROM orders
+           WHERE table_id=$1 AND restaurant_id=$2
+             AND status NOT IN ('paid','closed')
+           ORDER BY id ASC`,
+          [mainOrder.table_id, mainOrder.restaurant_id]
+        );
+      }
+
       if (relatedOrders.rows.length > 0) {
         allOrderIds = relatedOrders.rows.map(r => r.id);
       }
@@ -339,7 +373,11 @@ router.get("/:id/bill", authMiddleware, async (req, res) => {
 
     const subtotal = itemsResult.rows.reduce((sum, i) => sum + parseFloat(i.price), 0);
     const taxAmount = taxEnabled ? parseFloat((subtotal * taxRate / 100).toFixed(2)) : 0;
-    const total = parseFloat((subtotal + taxAmount).toFixed(2));
+    const totalWithTax = parseFloat((subtotal + taxAmount).toFixed(2));
+
+    // If already paid, use the stored discount from the DB (set at pay time)
+    const storedDiscount = parseFloat(mainOrder.discount_amount) || 0;
+    const total = parseFloat((totalWithTax - storedDiscount).toFixed(2));
 
     res.json({
       order: mainOrder,
@@ -350,6 +388,7 @@ router.get("/:id/bill", authMiddleware, async (req, res) => {
       tax_enabled: taxEnabled,
       tax_rate: taxRate,
       tax: taxAmount,
+      discount_amount: storedDiscount,
       total,
       restaurant_name: mainOrder.restaurant_name,
       restaurant_phone: mainOrder.restaurant_phone,

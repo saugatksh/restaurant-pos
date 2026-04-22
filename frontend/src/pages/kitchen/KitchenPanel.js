@@ -158,7 +158,9 @@ function KitchenCard({ order, updating, onPreparing, onServed }) {
       }}>
         <span style={{ fontSize: 20 }}>{isTakeaway ? "📦" : "🪑"}</span>
         <span style={{ color: "#fff", fontWeight: 900, fontSize: 16, letterSpacing: 1.5, textTransform: "uppercase", textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>
-          {isTakeaway ? "TAKEAWAY ORDER" : `TABLE ${order.table_number}`}
+          {isTakeaway
+            ? (order.table_number ? `TAKEAWAY ORDER (Table ${order.table_number})` : "TAKEAWAY ORDER")
+            : `TABLE ${order.table_number}`}
         </span>
       </div>
 
@@ -171,7 +173,11 @@ function KitchenCard({ order, updating, onPreparing, onServed }) {
             )}
           </div>
           {order.waiter_name && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>👤 {order.waiter_name}</div>}
-          {isTakeaway && <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginTop: 3, background: "#fef9c3", padding: "2px 8px", borderRadius: 20, display: "inline-block" }}>📦 Pack for Takeaway</div>}
+          {isTakeaway && (
+            <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginTop: 3, background: "#fef9c3", padding: "2px 8px", borderRadius: 20, display: "inline-block" }}>
+              📦 Pack for Takeaway{order.table_number ? ` — Table ${order.table_number}` : ""}
+            </div>
+          )}
         </div>
         <div className="kitchen-timer">🕐 {elapsed}</div>
       </div>

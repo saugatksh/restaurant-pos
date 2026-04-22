@@ -13,6 +13,29 @@ function timeSince(ts) {
   return `${Math.floor(m / 60)}h ${m % 60}m ago`;
 }
 
+// ─── DISCOUNT HELPER ─────────────────────────────────────────────────────────
+// Computes the Rs. discount amount and grand total given:
+//   totalWithTax : subtotal + VAT  (the "after-tax" base the discount applies to)
+//   discountType : "percent" | "fixed"
+//   discountValue: the raw number the cashier typed
+function computeDiscount(totalWithTax, discountType, discountValue) {
+  const val = parseFloat(discountValue) || 0;
+  if (val <= 0) return { discountAmt: 0, grandTotal: totalWithTax };
+
+  let discountAmt;
+  if (discountType === "percent") {
+    // clamp percent to [0, 100]
+    const pct = Math.min(100, Math.max(0, val));
+    discountAmt = parseFloat((totalWithTax * pct / 100).toFixed(2));
+  } else {
+    // fixed Rs. amount — clamp so it never exceeds the total
+    discountAmt = Math.min(totalWithTax, Math.max(0, parseFloat(val.toFixed(2))));
+  }
+
+  const grandTotal = parseFloat((totalWithTax - discountAmt).toFixed(2));
+  return { discountAmt, grandTotal };
+}
+
 export default function CashCounterPanel() {
   const [orders, setOrders] = useState([]);
   const [tables, setTables] = useState([]);
@@ -34,7 +57,11 @@ export default function CashCounterPanel() {
   const [takeawayOrder, setTakeawayOrder] = useState(null);
   const [savingTakeaway, setSavingTakeaway] = useState(false);
   const [finalBill, setFinalBill] = useState(null);
-  const [taxSettings, setTaxSettings] = useState(null); // null until fetched
+  const [taxSettings, setTaxSettings] = useState(null);
+
+  // ── Discount state ────────────────────────────────────────────────────────
+  const [discountType, setDiscountType] = useState("percent"); // "percent" | "fixed"
+  const [discountValue, setDiscountValue] = useState("");      // raw input string
 
   const { user, logout, theme, toggleTheme } = useAuth();
   const navigate = useNavigate();
@@ -46,20 +73,35 @@ export default function CashCounterPanel() {
         API.get("/tables"),
         API.get("/extras/tax-settings"),
       ]);
-      // Active orders: show only pending/preparing/served/credit_pending
       const allOrders = ordRes.data.filter(o =>
         ["served", "preparing", "pending", "credit_pending"].includes(o.status)
       );
-      // Deduplicate table orders: keep only the primary (oldest) per table
+      // Table-assigned takeaways (order_type=takeaway WITH a table_id) are
+      // already merged into the table bill — exclude them as standalone entries.
+      // Only standalone takeaways (no table_id) get their own card.
+      const standaloneOrders = allOrders.filter(o =>
+        !(o.order_type === "takeaway" && o.table_id)
+      );
       const seen = new Set();
-      const deduped = allOrders.filter(o => {
-        if (o.order_type === "takeaway") return true;
+      const deduped = standaloneOrders.filter(o => {
+        if (o.order_type === "takeaway") return true; // standalone takeaway
         if (!seen.has(o.table_id)) { seen.add(o.table_id); return true; }
         return false;
       });
-      setOrders(deduped.sort((a, b) => a.id - b.id));
+      // Attach any table-assigned takeaway orders so the card can show them
+      const tableAssignedTakeaways = allOrders.filter(o =>
+        o.order_type === "takeaway" && o.table_id
+      );
+      const dedupedWithMeta = deduped.map(o => {
+        if (o.order_type !== "takeaway" && o.table_id) {
+          const linked = tableAssignedTakeaways.filter(t => t.table_id === o.table_id);
+          return { ...o, _takeawayOrders: linked };
+        }
+        return { ...o, _takeawayOrders: [] };
+      });
+      setOrders(dedupedWithMeta.sort((a, b) => a.id - b.id));
       setTables(tblRes.data);
-      setTaxSettings(taxRes.data); // refreshed every poll — reflects admin toggle instantly
+      setTaxSettings(taxRes.data);
     } catch {}
     setLoading(false);
   }, []);
@@ -69,16 +111,14 @@ export default function CashCounterPanel() {
   }, []);
 
   useEffect(() => { loadOrders(); loadMenu(); }, [loadOrders, loadMenu]);
-
-  useEffect(() => {
-    const t = setInterval(loadOrders, 15000);
-    return () => clearInterval(t);
-  }, [loadOrders]);
+  useEffect(() => { const t = setInterval(loadOrders, 15000); return () => clearInterval(t); }, [loadOrders]);
 
   const selectOrder = async (order) => {
     setSelectedOrder(order);
     setBillLoading(true);
     setStep("detail");
+    setDiscountType("percent");
+    setDiscountValue("");
     try {
       const res = await API.get(`/orders/${order.id}/bill`);
       setBill(res.data);
@@ -97,13 +137,25 @@ export default function CashCounterPanel() {
     }
   };
 
+  // Compute derived discount values from current bill + discount inputs
+  const getDiscountCalc = () => {
+    if (!bill) return { discountAmt: 0, grandTotal: 0, totalWithTax: 0 };
+    const totalWithTax = Number(bill.total);
+    const { discountAmt, grandTotal } = computeDiscount(totalWithTax, discountType, discountValue);
+    return { discountAmt, grandTotal, totalWithTax };
+  };
+
   const handleConfirmPay = async () => {
     if (!selectedOrder || !payMethod) return;
     setPaying(true);
+    const { discountAmt } = getDiscountCalc();
     try {
-      await API.put(`/orders/${selectedOrder.id}/pay`, { method: payMethod });
+      await API.put(`/orders/${selectedOrder.id}/pay`, {
+        method: payMethod,
+        discount_amount: discountAmt,
+      });
       const r = await API.get(`/orders/${selectedOrder.id}/bill`);
-      setFinalBill({ ...r.data, payment_method: payMethod });
+      setFinalBill({ ...r.data, payment_method: payMethod, discount_amount: discountAmt });
       setStep("bill");
       await loadOrders();
     } catch {}
@@ -114,17 +166,29 @@ export default function CashCounterPanel() {
     e.preventDefault();
     if (!selectedOrder || !bill) return;
     setPaying(true);
+    const { discountAmt, grandTotal } = getDiscountCalc();
     try {
+      // For credit, record the grand total after discount as the credit amount
       await API.post("/credits", {
         order_id: selectedOrder.id,
         customer_name: creditForm.customer_name,
         customer_phone: creditForm.customer_phone,
-        amount: bill.total,
+        amount: grandTotal,
         deadline: creditForm.deadline,
         notes: creditForm.notes,
       });
+      // Also store the discount on the order (pay endpoint with credit method)
+      await API.put(`/orders/${selectedOrder.id}/pay`, {
+        method: "credit",
+        discount_amount: discountAmt,
+      });
       const r = await API.get(`/orders/${selectedOrder.id}/bill`);
-      setFinalBill({ ...r.data, payment_method: "credit", credit_customer: creditForm.customer_name });
+      setFinalBill({
+        ...r.data,
+        payment_method: "credit",
+        credit_customer: creditForm.customer_name,
+        discount_amount: discountAmt,
+      });
       setCreditModal(false);
       setCreditForm({ customer_name: "", customer_phone: "", deadline: "", notes: "" });
       setStep("bill");
@@ -144,17 +208,12 @@ export default function CashCounterPanel() {
       setReserveModal(null);
       setReserveForm({ reserved_by_name: "", reserved_by_phone: "" });
       await loadOrders();
-    } catch (err) {
-      alert(err.response?.data?.error || "Failed to reserve");
-    }
+    } catch (err) { alert(err.response?.data?.error || "Failed to reserve"); }
     setReserving(false);
   };
 
   const updateTableStatus = async (tableId, status) => {
-    try {
-      await API.put(`/tables/${tableId}`, { status });
-      await loadOrders();
-    } catch {}
+    try { await API.put(`/tables/${tableId}`, { status }); await loadOrders(); } catch {}
   };
 
   const handleNewTakeaway = async () => {
@@ -195,6 +254,8 @@ export default function CashCounterPanel() {
     setBill(null);
     setPayMethod(null);
     setFinalBill(null);
+    setDiscountType("percent");
+    setDiscountValue("");
   };
 
   const handleLogout = async () => {
@@ -208,10 +269,8 @@ export default function CashCounterPanel() {
   const statusColor = { pending: "var(--warning)", preparing: "var(--info)", served: "var(--success)", credit_pending: "#8b5cf6" };
   const catIcons = { food: "🍛", drink: "🥤", dessert: "🍰", snack: "🍿" };
   const categories = [...new Set(menu.map(m => m.category))];
-
   const roundColors = ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#06b6d4", "#8b5cf6"];
 
-  // Group bill items by order_id → round number
   const groupItemsByRound = (items, roundMap) => {
     if (!items) return [];
     const groups = {};
@@ -226,6 +285,9 @@ export default function CashCounterPanel() {
       items,
     })).sort((a, b) => a.roundNumber - b.roundNumber);
   };
+
+  const { discountAmt, grandTotal: liveGrandTotal } = getDiscountCalc();
+  const hasDiscount = discountAmt > 0;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-base)", display: "flex", flexDirection: "column" }}>
@@ -257,7 +319,7 @@ export default function CashCounterPanel() {
       </header>
 
       {/* MAIN BODY */}
-      <div className="no-print" style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 420px", overflow: "hidden" }}>
+      <div className="no-print" style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 440px", overflow: "hidden" }}>
 
         {/* LEFT: ORDERS LIST */}
         <div style={{ overflow: "auto", padding: 24 }}>
@@ -276,7 +338,6 @@ export default function CashCounterPanel() {
               {orders.map(order => {
                 const isSelected = selectedOrder?.id === order.id;
                 const isTakeaway = order.order_type === "takeaway";
-                // combined_total from backend includes ALL rounds for this table
                 const subtotal = Number(order.combined_total !== undefined ? order.combined_total : order.total) || 0;
                 const cardTaxEnabled = taxSettings ? taxSettings.tax_enabled !== false : false;
                 const cardTaxRate = taxSettings ? (parseFloat(taxSettings.tax_rate) || 13) : 13;
@@ -296,9 +357,16 @@ export default function CashCounterPanel() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                        <span style={{ fontWeight: 800, fontSize: 15 }}>
-                          {isTakeaway ? <span style={{ color: "#f59e0b" }}>TAKEAWAY</span> : `Table ${order.table_number}`}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 800, fontSize: 15 }}>
+                            {isTakeaway ? <span style={{ color: "#f59e0b" }}>TAKEAWAY</span> : `Table ${order.table_number}`}
+                          </span>
+                          {!isTakeaway && order._takeawayOrders?.length > 0 && (
+                            <span style={{ fontSize: 11, fontWeight: 700, background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 20, padding: "2px 8px" }}>
+                              📦 +Takeaway
+                            </span>
+                          )}
+                        </div>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: `${statusColor[order.status]}22`, color: statusColor[order.status], border: `1px solid ${statusColor[order.status]}44` }}>
                           {statusLabel[order.status] || order.status}
                         </span>
@@ -370,7 +438,11 @@ export default function CashCounterPanel() {
                 <button className="btn btn-ghost btn-sm" onClick={resetToList}>← Back</button>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 800, fontSize: 15 }}>
-                    {selectedOrder.order_type === "takeaway" ? "📦 Takeaway Order" : `🪑 Table ${selectedOrder.table_number}`}
+                    {selectedOrder.order_type === "takeaway"
+                      ? "📦 Takeaway Order"
+                      : selectedOrder._takeawayOrders?.length > 0
+                        ? `🪑 Table ${selectedOrder.table_number} + 📦 Takeaway`
+                        : `🪑 Table ${selectedOrder.table_number}`}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)" }}>#{selectedOrder.id} · {selectedOrder.waiter_name || "—"}</div>
                 </div>
@@ -386,11 +458,16 @@ export default function CashCounterPanel() {
                   {/* Multi-round notice */}
                   {bill.allOrderIds?.length > 1 && (
                     <div style={{ background: "rgba(99,102,241,0.08)", border: "1px solid var(--accent)33", borderRadius: 10, padding: "8px 14px", marginBottom: 14, fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>
-                      📋 {bill.allOrderIds.length} rounds combined — showing full bill
+                      📋 {bill.allOrderIds.length} orders combined — showing full bill
+                      {selectedOrder?._takeawayOrders?.length > 0 && (
+                        <span style={{ marginLeft: 8, background: "rgba(245,158,11,0.15)", color: "#f59e0b", borderRadius: 12, padding: "2px 8px", fontSize: 11 }}>
+                          includes 📦 {selectedOrder._takeawayOrders.length} takeaway order{selectedOrder._takeawayOrders.length > 1 ? "s" : ""}
+                        </span>
+                      )}
                     </div>
                   )}
 
-                  {/* Merged flat item list — no round headers */}
+                  {/* Items */}
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-muted)", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>
                       Order Items {bill.allOrderIds?.length > 1 ? `(${bill.allOrderIds.length} rounds)` : ""}
@@ -408,7 +485,7 @@ export default function CashCounterPanel() {
                     </div>
                   </div>
 
-                  {/* Totals */}
+                  {/* Totals box with discount section */}
                   <div style={{ background: "var(--bg-surface)", borderRadius: 12, padding: 14, border: "1px solid var(--border)", marginBottom: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
                       <span style={{ color: "var(--text-muted)" }}>Subtotal</span>
@@ -420,10 +497,111 @@ export default function CashCounterPanel() {
                         <span>Rs. {Number(bill.tax).toLocaleString()}</span>
                       </div>
                     )}
-                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: 22, color: "var(--success)", borderTop: "2px dashed var(--border)", paddingTop: 10 }}>
-                      <span>Total</span>
-                      <span>Rs. {Number(bill.total).toLocaleString()}</span>
+
+                    {/* ── DISCOUNT SECTION ── */}
+                    <div style={{ borderTop: "1px dashed var(--border)", paddingTop: 12, marginBottom: 10 }}>
+                      <div style={{ fontWeight: 700, fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                        🎁 Discount
+                        <span style={{ fontSize: 11, fontWeight: 400, fontStyle: "italic", textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+                        {/* Type toggle */}
+                        <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)", flexShrink: 0 }}>
+                          {[
+                            { key: "percent", label: "%" },
+                            { key: "fixed",   label: "Rs." },
+                          ].map(opt => (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => { setDiscountType(opt.key); setDiscountValue(""); }}
+                              style={{
+                                padding: "7px 12px",
+                                fontSize: 13,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                border: "none",
+                                background: discountType === opt.key ? "var(--accent)" : "var(--bg-secondary)",
+                                color: discountType === opt.key ? "#fff" : "var(--text-muted)",
+                                transition: "all 0.15s",
+                              }}
+                            >{opt.label}</button>
+                          ))}
+                        </div>
+                        {/* Value input */}
+                        <input
+                          type="number"
+                          min="0"
+                          step={discountType === "percent" ? "0.5" : "1"}
+                          max={discountType === "percent" ? "100" : undefined}
+                          placeholder={discountType === "percent" ? "e.g. 5 or 10" : "e.g. 150"}
+                          value={discountValue}
+                          onChange={e => setDiscountValue(e.target.value)}
+                          style={{
+                            flex: 1,
+                            padding: "7px 12px",
+                            fontSize: 14,
+                            fontWeight: 600,
+                            border: "1px solid var(--border)",
+                            borderRadius: 8,
+                            background: "var(--bg-primary)",
+                            color: "var(--text-primary)",
+                            outline: "none",
+                          }}
+                        />
+                        {discountValue && (
+                          <button
+                            type="button"
+                            onClick={() => setDiscountValue("")}
+                            style={{ padding: "7px 10px", background: "var(--bg-secondary)", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer", color: "var(--text-muted)", fontSize: 14 }}
+                            title="Clear discount"
+                          >✕</button>
+                        )}
+                      </div>
+
+                      {/* Quick-pick percent buttons */}
+                      {discountType === "percent" && (
+                        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                          {[5, 10, 15, 20, 25, 50].map(pct => (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => setDiscountValue(String(pct))}
+                              style={{
+                                padding: "4px 10px",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                borderRadius: 20,
+                                cursor: "pointer",
+                                border: "1px solid var(--border)",
+                                background: discountValue === String(pct) ? "var(--accent)" : "var(--bg-secondary)",
+                                color: discountValue === String(pct) ? "#fff" : "var(--text-secondary)",
+                                transition: "all 0.15s",
+                              }}
+                            >{pct}%</button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Live discount preview */}
+                      {hasDiscount && (
+                        <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--danger, #ef4444)", fontWeight: 700 }}>
+                          <span>Discount {discountType === "percent" ? `(${discountValue}%)` : ""}</span>
+                          <span>− Rs. {discountAmt.toLocaleString()}</span>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Grand total */}
+                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: 22, color: "var(--success)", borderTop: "2px dashed var(--border)", paddingTop: 10 }}>
+                      <span>Grand Total</span>
+                      <span>Rs. {liveGrandTotal.toLocaleString()}</span>
+                    </div>
+                    {hasDiscount && (
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "right", marginTop: 2 }}>
+                        (original Rs. {Number(bill.total).toLocaleString()})
+                      </div>
+                    )}
                   </div>
 
                   {step === "detail" && (
@@ -437,9 +615,9 @@ export default function CashCounterPanel() {
                       <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Select Payment Method</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {[
-                          { method: "cash", icon: "💵", label: "Cash", desc: "Physical cash payment", color: "#16a34a", bg: "#f0fdf4" },
-                          { method: "online", icon: "📱", label: "Online / QR", desc: "eSewa, Khalti, IME Pay, QR", color: "#2563eb", bg: "#eff6ff" },
-                          { method: "credit", icon: "📋", label: "Credit (Pay Later)", desc: "Record as pending payment", color: "#8b5cf6", bg: "#f5f3ff" },
+                          { method: "cash",   icon: "💵", label: "Cash",              desc: "Physical cash payment",               color: "#16a34a", bg: "#f0fdf4" },
+                          { method: "online", icon: "📱", label: "Online / QR",       desc: "eSewa, Khalti, IME Pay, QR",           color: "#2563eb", bg: "#eff6ff" },
+                          { method: "credit", icon: "📋", label: "Credit (Pay Later)", desc: "Record as pending payment",            color: "#8b5cf6", bg: "#f5f3ff" },
                         ].map(opt => (
                           <button key={opt.method} onClick={() => handleChooseMethod(opt.method)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", borderRadius: 12, cursor: "pointer", background: opt.bg, border: `2px solid ${opt.color}33`, textAlign: "left", transition: "all 0.2s" }}
                           onMouseOver={e => { e.currentTarget.style.borderColor = opt.color; e.currentTarget.style.transform = "translateX(4px)"; }}
@@ -462,9 +640,22 @@ export default function CashCounterPanel() {
                       <div style={{ background: "var(--bg-surface)", border: "2px solid var(--accent)", borderRadius: 14, padding: 20, textAlign: "center", marginBottom: 16 }}>
                         <div style={{ fontSize: 42, marginBottom: 8 }}>{payMethod === "cash" ? "💵" : "📱"}</div>
                         <div style={{ fontWeight: 900, fontSize: 18 }}>{payMethod === "cash" ? "Cash Payment" : "Online Payment"}</div>
-                        <div style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>Confirm payment of</div>
-                        <div style={{ fontSize: 32, fontWeight: 900, color: "var(--success)" }}>Rs. {Number(bill.total).toLocaleString()}</div>
-                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+                        <div style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 8 }}>Confirm payment of</div>
+                        {hasDiscount && (
+                          <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4, textDecoration: "line-through" }}>
+                            Rs. {Number(bill.total).toLocaleString()}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 32, fontWeight: 900, color: "var(--success)" }}>
+                          Rs. {liveGrandTotal.toLocaleString()}
+                        </div>
+                        {hasDiscount && (
+                          <div style={{ marginTop: 4, fontSize: 12, color: "#ef4444", fontWeight: 700 }}>
+                            🎁 Discount applied: − Rs. {discountAmt.toLocaleString()}
+                            {discountType === "percent" && ` (${discountValue}%)`}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
                           {selectedOrder.order_type === "takeaway" ? "📦 Takeaway Order" : `🪑 Table ${selectedOrder.table_number}`}
                           {bill.allOrderIds?.length > 1 && ` · ${bill.allOrderIds.length} rounds`}
                         </div>
@@ -519,7 +710,14 @@ export default function CashCounterPanel() {
               <div className="modal-body">
                 <div style={{ background: "#f5f3ff", border: "1px solid #c4b5fd", borderRadius: 10, padding: "12px 14px", marginBottom: 16, textAlign: "center" }}>
                   <div style={{ fontSize: 24, marginBottom: 4 }}>📋</div>
-                  <div style={{ fontWeight: 800, color: "#7c3aed", fontSize: 18 }}>Rs. {bill ? Number(bill.total).toLocaleString() : ""}</div>
+                  {hasDiscount && (
+                    <div style={{ fontSize: 12, color: "#ef4444", fontWeight: 700, marginBottom: 4 }}>
+                      🎁 Discount − Rs. {discountAmt.toLocaleString()} applied
+                    </div>
+                  )}
+                  <div style={{ fontWeight: 800, color: "#7c3aed", fontSize: 18 }}>
+                    Rs. {bill ? liveGrandTotal.toLocaleString() : ""}
+                  </div>
                   <div style={{ fontSize: 12, color: "#6b7280" }}>Will be recorded as pending. Not counted in sales until received.</div>
                 </div>
                 <div className="form-group"><label>Customer Name *</label><input required placeholder="Full name" value={creditForm.customer_name} onChange={e => setCreditForm({ ...creditForm, customer_name: e.target.value })} /></div>
@@ -620,14 +818,26 @@ function Receipt({ bill, roundColors, groupItemsByRound }) {
   const methodIcons = { cash: "💵", online: "📱", credit: "📋" };
   const hasMultipleRounds = bill.allOrderIds?.length > 1;
 
+  // Prefer the passed-in discount_amount (set at payment time), fallback to bill field
+  const discountAmount = parseFloat(bill.discount_amount) || 0;
+  const hasDiscount = discountAmount > 0;
+
+  // Recompute receipt totals from bill data
+  const subtotal   = parseFloat(bill.subtotal)  || 0;
+  const tax        = parseFloat(bill.tax)        || 0;
+  const totalWithTax = parseFloat((subtotal + tax).toFixed(2));
+  const grandTotal = hasDiscount
+    ? parseFloat((totalWithTax - discountAmount).toFixed(2))
+    : parseFloat(bill.total) || 0;
+
   return (
     <div className="receipt-thermal">
       {/* Restaurant Header */}
       <div className="receipt-header">
         <div className="receipt-restaurant-name">{bill.restaurant_name || "Restaurant"}</div>
         {bill.restaurant_address && <div className="receipt-meta">{bill.restaurant_address}</div>}
-        {bill.restaurant_phone && <div className="receipt-meta">Tel: {bill.restaurant_phone}</div>}
-        {bill.pan_number && <div className="receipt-meta">PAN: {bill.pan_number}</div>}
+        {bill.restaurant_phone  && <div className="receipt-meta">Tel: {bill.restaurant_phone}</div>}
+        {bill.pan_number        && <div className="receipt-meta">PAN: {bill.pan_number}</div>}
       </div>
 
       <div className="receipt-divider-dashed" />
@@ -675,15 +885,26 @@ function Receipt({ bill, roundColors, groupItemsByRound }) {
       {/* Totals */}
       <div className="receipt-totals">
         <div className="receipt-total-row">
-          <span>Subtotal</span><span>Rs. {Number(bill.subtotal).toLocaleString()}</span>
+          <span>Subtotal</span><span>Rs. {subtotal.toLocaleString()}</span>
         </div>
-        {bill.tax_enabled && bill.tax > 0 && (
+        {bill.tax_enabled && tax > 0 && (
           <div className="receipt-total-row">
-            <span>VAT ({bill.tax_rate}%)</span><span>Rs. {Number(bill.tax).toLocaleString()}</span>
+            <span>VAT ({bill.tax_rate}%)</span><span>Rs. {tax.toLocaleString()}</span>
           </div>
         )}
+        {hasDiscount && (
+          <>
+            {/* <div className="receipt-total-row" style={{ color: "inherit", opacity: 0.75 }}>
+              <span>Total (before discount)</span><span>Rs. {totalWithTax.toLocaleString()}</span>
+            </div> */}
+            <div className="receipt-total-row" style={{ fontWeight: 700 }}>
+              <span>Discount</span><span>− Rs. {discountAmount.toLocaleString()}</span>
+            </div>
+          </>
+        )}
         <div className="receipt-total-row receipt-grand-total">
-          <span>TOTAL</span><span>Rs. {Number(bill.total).toLocaleString()}</span>
+          <span>{hasDiscount ? "GRAND TOTAL" : "TOTAL"}</span>
+          <span>Rs. {grandTotal.toLocaleString()}</span>
         </div>
       </div>
 
@@ -695,6 +916,9 @@ function Receipt({ bill, roundColors, groupItemsByRound }) {
           ? <div style={{ color: "#7c3aed", fontWeight: 700 }}>⚠️ CREDIT — Payment Pending</div>
           : <div style={{ color: "#16a34a", fontWeight: 700 }}>✅ Payment Received</div>
         }
+        {/* {hasDiscount && (
+          <div style={{ marginTop: 4, fontSize: 11 }}>🎁 Discount of Rs. {discountAmount.toLocaleString()} applied</div>
+        )} */}
         <div style={{ marginTop: 6 }}>धन्यवाद! / Thank you for dining with us!</div>
       </div>
     </div>
