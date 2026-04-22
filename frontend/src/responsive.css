@@ -1,0 +1,1218 @@
+/*
+ * responsive.css — RestoPOS v3.0 Responsive & UX System
+ * ──────────────────────────────────────────────────────
+ * Breakpoints:
+ *   xs:  0–479px     phones portrait
+ *   sm:  480–767px   phones landscape / small tablets
+ *   md:  768–1023px  tablets
+ *   lg:  1024–1439px desktop
+ *   xl:  1440px+     large monitors
+ *
+ * Import AFTER index.css in your App.js or index.js:
+ *   import "./responsive.css";
+ */
+
+/* ═══════════════════════════════════════════════════════
+   0. EXTEND CSS VARIABLES (missing from index.css)
+═══════════════════════════════════════════════════════ */
+:root, [data-theme="dark"] {
+  --sidebar-w: 240px;
+  --topbar-h: 52px;
+  --transition-sidebar: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-glow: 0 0 20px rgba(99,102,241,0.25);
+  --border-focus: var(--accent);
+  --bg-hover: rgba(255,255,255,0.04);
+  --border-md: rgba(255,255,255,0.1);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+[data-theme="light"] {
+  --bg-hover: rgba(0,0,0,0.04);
+  --border-md: rgba(0,0,0,0.1);
+  --shadow-glow: 0 0 20px rgba(99,102,241,0.15);
+}
+
+/* ═══════════════════════════════════════════════════════
+   1. BASE RESET & GLOBAL
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img, video, svg { max-width: 100%; height: auto; }
+
+/* Safe-area insets for notched phones (iPhone X+, Android) */
+.unified-login-root,
+.login-page,
+.dashboard,
+.kitchen-root {
+  padding-left:   env(safe-area-inset-left,  0px);
+  padding-right:  env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Prevent text overflow everywhere */
+.stat-label, .stat-value, .user-name,
+.restaurant-name, .nav-item, .btn {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brand-role, .nav-item, .stat-value { white-space: normal; }
+
+/* Better focus ring */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Tap highlight off for interactive elements */
+.btn, .nav-item, .table-tile, .kitchen-card,
+.menu-card, .stat-card, button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+/* Touch-press feedback */
+.btn:active { transform: scale(0.97) !important; }
+
+/* ═══════════════════════════════════════════════════════
+   2. SCROLLBARS
+═══════════════════════════════════════════════════════ */
+::-webkit-scrollbar          { width: 5px; height: 5px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: var(--border-md); border-radius: 10px; }
+::-webkit-scrollbar-corner   { background: transparent; }
+
+.main-content, .sidebar, .page-body, .modal {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-md) transparent;
+}
+
+/* ═══════════════════════════════════════════════════════
+   3. FLUID TYPOGRAPHY
+═══════════════════════════════════════════════════════ */
+.page-header h1 {
+  font-size: clamp(17px, 2.5vw, 22px);
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+}
+.page-header p {
+  font-size: clamp(11px, 1.5vw, 13px);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.stat-value {
+  font-size: clamp(18px, 3vw, 26px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════════════
+   4. UNIFIED LOGIN — RESPONSIVE
+═══════════════════════════════════════════════════════ */
+.unified-login-root {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.unified-login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 24px;
+  padding: 36px 32px 28px;
+}
+
+/* xs: full screen feel */
+@media (max-width: 479px) {
+  .unified-login-card {
+    border-radius: 20px;
+    padding: 28px 20px 24px;
+    max-width: 100%;
+  }
+  .brand-badge {
+    width: 56px;
+    height: 56px;
+  }
+  .brand-title { font-size: 22px !important; }
+  .login-submit-btn { padding: 14px !important; font-size: 15px !important; min-height: 50px; }
+  .login-input-wrap input { padding: 13px 40px 13px 40px !important; font-size: 15px !important; min-height: 48px; }
+  .login-theme-btn { top: 12px; right: 12px; }
+  /* Orbs: scale down on small screens */
+  .orb-1 { width: 200px; height: 200px; }
+  .orb-2 { width: 160px; height: 160px; }
+  .orb-3 { width: 130px; height: 130px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   5. DASHBOARD LAYOUT — SIDEBAR + MAIN
+═══════════════════════════════════════════════════════ */
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-base);
+  position: relative;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--bg-sidebar, var(--bg-card));
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: var(--transition-sidebar);
+  z-index: 200;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Sidebar close button (hidden on desktop) ── */
+.sidebar-close-btn {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.sidebar-close-btn:hover { background: var(--danger-bg); color: var(--danger); }
+
+/* ── Sidebar overlay (mobile) ── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 199;
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+.sidebar-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ── Hamburger toggle ── */
+.sidebar-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  color: var(--text-primary);
+}
+.sidebar-toggle:hover { background: var(--accent-bg); border-color: var(--accent); }
+
+/* ── Mobile topbar (hidden on desktop) ── */
+.mobile-topbar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 10px;
+  min-height: var(--topbar-h);
+  flex-shrink: 0;
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+
+.mobile-topbar-title {
+  font-size: 14px;
+  font-weight: 700;
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-mobile-btn {
+  position: relative;
+  padding: 6px !important;
+}
+
+/* ── TABLET: narrower sidebar ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sidebar { width: 200px; }
+  .nav-item { font-size: 12px; padding: 8px 10px; }
+  .sidebar-brand { padding: 16px 14px 14px; }
+  .brand-logo h2 { font-size: 14px; }
+}
+
+/* ── MOBILE: slide-over sidebar ── */
+@media (max-width: 767px) {
+  .mobile-topbar      { display: flex; }
+  .sidebar-overlay    { display: block; }
+  .sidebar-toggle     { display: flex; }
+  .sidebar-close-btn  { display: flex; }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 280px;
+    max-width: 85vw;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+    z-index: 200;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Main content spans full width */
+  .main-content {
+    height: 100vh;
+    width: 100%;
+  }
+
+  .page-header {
+    padding: 16px 16px 0;
+    gap: 10px;
+  }
+  .page-header > div:last-child {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .page-body { padding: 14px 16px 24px; }
+}
+
+@media (max-width: 479px) {
+  .sidebar { width: 260px; }
+  .page-header { padding: 12px 12px 0; }
+  .page-body  { padding: 12px 12px 20px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   6. STATS GRID
+═══════════════════════════════════════════════════════ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 767px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 359px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ═══════════════════════════════════════════════════════
+   7. CARDS
+═══════════════════════════════════════════════════════ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+@media (max-width: 479px) {
+  .card { padding: 14px; border-radius: 12px; }
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   8. BUTTONS — TOUCH FRIENDLY (min 44px target)
+═══════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 9px;
+  border: none;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  min-height: 40px;
+  touch-action: manipulation;
+  line-height: 1;
+}
+
+.btn-sm { padding: 7px 12px; font-size: 12px; min-height: 34px; border-radius: 7px; }
+.btn-lg { padding: 13px 22px; font-size: 15px; min-height: 48px; border-radius: 11px; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* On very small screens, full-width action buttons */
+@media (max-width: 479px) {
+  .btn-block-xs { width: 100%; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   9. FORM ELEMENTS
+═══════════════════════════════════════════════════════ */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 13px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-height: 42px; /* touch-friendly */
+  -webkit-appearance: none;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Form grids collapse to 1 col on mobile */
+.form-grid   { display: grid; gap: 12px; }
+.form-grid-2 { grid-template-columns: 1fr 1fr; }
+.form-grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 540px) {
+  .form-grid-2,
+  .form-grid-3 { grid-template-columns: 1fr !important; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   10. TABLE WRAPPER — horizontal scroll on mobile
+═══════════════════════════════════════════════════════ */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.table-wrap table {
+  width: 100%;
+  min-width: 580px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table-wrap th {
+  background: var(--bg-surface);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table-wrap td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.table-wrap tr:last-child td  { border-bottom: none; }
+.table-wrap tr:hover td       { background: var(--bg-hover); }
+
+/* Hide less-important columns on small screens */
+@media (max-width: 640px) {
+  .table-wrap th.col-hide-sm,
+  .table-wrap td.col-hide-sm { display: none; }
+}
+@media (max-width: 480px) {
+  .table-wrap th.col-hide-xs,
+  .table-wrap td.col-hide-xs { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   11. MODALS
+═══════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 540px) {
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    border-radius: 24px 24px 0 0;
+    max-height: 92vh;
+    animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes modalSlideUp {
+    from { transform: translateY(100%); opacity: 0.5; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   12. NOTIFICATION DROPDOWN
+═══════════════════════════════════════════════════════ */
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(360px, calc(100vw - 32px));
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  overflow: hidden;
+  animation: dropIn 0.2s ease;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 479px) {
+  .notif-bell-wrap { position: static; }
+  .notif-dropdown {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   13. FILTER / TAB SCROLL ROW
+═══════════════════════════════════════════════════════ */
+.filter-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+.filter-scroll::-webkit-scrollbar { display: none; }
+.filter-scroll > * { flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════
+   14. EMPTY STATES
+═══════════════════════════════════════════════════════ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  gap: 10px;
+}
+.empty-icon { font-size: 44px; line-height: 1; }
+.empty-state h3 {
+  font-size: clamp(16px, 2.5vw, 18px);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.empty-state p { font-size: 13px; max-width: 300px; line-height: 1.6; }
+
+@media (max-width: 479px) {
+  .empty-state { padding: 36px 16px; }
+  .empty-icon  { font-size: 36px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   15. SPINNERS & LOADING
+═══════════════════════════════════════════════════════ */
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: auto;
+}
+.spinner-sm {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════
+   16. KITCHEN PANEL
+═══════════════════════════════════════════════════════ */
+
+/* Kitchen header base */
+.kitchen-header {
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.kitchen-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.kitchen-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.kitchen-stats-bar {
+  display: flex;
+  gap: 12px;
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+.kitchen-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kitchen-section-title { margin-bottom: 12px; }
+
+/* Tablet */
+@media (max-width: 900px) {
+  .kitchen-header { padding: 10px 16px; }
+  .kitchen-stats-bar { gap: 10px; padding: 5px 12px; }
+}
+/* Mobile: stack header into 2 rows */
+@media (max-width: 600px) {
+  .kitchen-header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 14px; }
+  .kitchen-header-right { width: 100%; justify-content: space-between; }
+  .kitchen-stats-bar { flex: 1; justify-content: space-around; }
+  .kitchen-header-controls { gap: 6px; }
+}
+
+/* Kitchen grid */
+.kitchen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .kitchen-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .kitchen-grid { grid-template-columns: 1fr; gap: 12px; }
+}
+
+/* Kitchen card */
+.kitchen-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.kitchen-card:hover { box-shadow: var(--shadow-md); }
+
+.kitchen-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 14px 6px;
+  gap: 8px;
+}
+
+.kitchen-card-body {
+  padding: 6px 14px 8px;
+}
+
+.kitchen-card-footer {
+  padding: 10px 14px 12px;
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+}
+.kitchen-card-footer .btn { flex: 1; min-height: 44px; font-size: 14px; }
+
+.kitchen-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+.kitchen-item:last-child { border-bottom: none; }
+
+.kitchen-item-name { font-weight: 600; font-size: 14px; }
+.kitchen-item-qty  {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  min-width: 36px;
+  text-align: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.kitchen-timer {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+  background: var(--bg-elevated);
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+/* Status colours */
+.kitchen-card.status-pending  { border-left: 3px solid var(--warning); }
+.kitchen-card.status-preparing { border-left: 3px solid var(--info); }
+
+/* Animate pulse for urgent */
+.animate-pulse { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   17. WAITER PANEL
+═══════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  /* Stack main layout vertically */
+  .waiter-main-layout {
+    flex-direction: column !important;
+  }
+
+  /* Table grid: 3 cols on phone landscape */
+  .waiter-table-grid,
+  .table-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Menu grid: 2 cols on phone */
+  .waiter-menu-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Order panel: full width */
+  .waiter-order-panel {
+    width: 100% !important;
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+
+  /* Table tiles: touch-friendly */
+  .table-tile { padding: 10px 6px !important; min-height: 72px; }
+  .tile-num   { font-size: 18px !important; }
+}
+
+@media (max-width: 479px) {
+  .waiter-table-grid,
+  .table-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   18. CASH COUNTER PANEL
+═══════════════════════════════════════════════════════ */
+.cash-counter-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .cash-counter-layout { grid-template-columns: 1fr 320px; }
+}
+
+/* Tablet: stack vertically */
+@media (max-width: 900px) {
+  .cash-counter-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+}
+
+/* Mobile: order cart as bottom sheet */
+@media (max-width: 767px) {
+  .cash-counter-sidebar {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 62vh !important;
+    max-height: 62vh !important;
+    border-radius: 22px 22px 0 0 !important;
+    z-index: 200;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.35) !important;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .cash-counter-sidebar.open {
+    transform: translateY(0);
+  }
+  /* Show cart toggle button on mobile */
+  .cash-cart-fab {
+    display: flex !important;
+  }
+}
+
+/* Cart FAB (floating button) — hidden on desktop */
+.cash-cart-fab {
+  display: none;
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  right: 20px;
+  z-index: 201;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.5);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.cash-cart-fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(99,102,241,0.6); }
+
+/* ═══════════════════════════════════════════════════════
+   19. SUPER ADMIN — RESTAURANTS GRID
+═══════════════════════════════════════════════════════ */
+.restaurants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 767px) {
+  .restaurants-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 479px) {
+  .restaurants-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   20. THEME TOGGLE BUTTON
+═══════════════════════════════════════════════════════ */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  min-height: 36px;
+  white-space: nowrap;
+}
+.theme-toggle:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-light); }
+
+.toggle-track {
+  width: 30px;
+  height: 17px;
+  background: var(--border-strong);
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.2s;
+}
+[data-theme="dark"] .toggle-track { background: var(--accent); }
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+[data-theme="dark"] .toggle-thumb { transform: translateX(13px); }
+
+@media (max-width: 479px) {
+  .theme-toggle span:last-child { display: none; } /* hide text label on xs */
+  .theme-toggle { padding: 7px 9px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   21. ALERT / BADGE COMPONENTS
+═══════════════════════════════════════════════════════ */
+.alert {
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid transparent;
+}
+.alert-error   { background: var(--danger-bg);  border-color: rgba(239,68,68,0.3);   color: var(--danger); }
+.alert-warning { background: var(--warning-bg); border-color: rgba(245,158,11,0.3);  color: var(--warning); }
+.alert-success { background: var(--success-bg); border-color: rgba(16,185,129,0.3);  color: var(--success); }
+.alert-info    { background: var(--info-bg);    border-color: rgba(59,130,246,0.3);  color: var(--info); }
+
+/* ═══════════════════════════════════════════════════════
+   22. BADGE / STATUS PILLS
+═══════════════════════════════════════════════════════ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-success  { background: var(--success-bg); color: var(--success); }
+.badge-warning  { background: var(--warning-bg); color: var(--warning); }
+.badge-danger   { background: var(--danger-bg);  color: var(--danger); }
+.badge-info     { background: var(--info-bg);    color: var(--info); }
+.badge-accent   { background: var(--accent-bg);  color: var(--accent-light); }
+
+/* ═══════════════════════════════════════════════════════
+   23. OFFLINE BANNER (Main.js)
+═══════════════════════════════════════════════════════ */
+@keyframes slideDown {
+  from { transform: translateY(-8px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   24. SUBSCRIPTION INACTIVE SCREEN
+═══════════════════════════════════════════════════════ */
+@media (max-width: 479px) {
+  /* Make the subscription card fill mobile screens better */
+  .subscription-inactive-card {
+    border-radius: 16px !important;
+    padding: 28px 20px !important;
+    margin: 0 8px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   25. PRINT STYLES
+═══════════════════════════════════════════════════════ */
+@media print {
+  .sidebar,
+  .sidebar-toggle,
+  .sidebar-overlay,
+  .mobile-topbar,
+  .theme-toggle,
+  .btn:not(.print-visible),
+  .modal-overlay,
+  .offline-banner,
+  .notif-bell-wrap { display: none !important; }
+
+  .main-content { height: auto; overflow: visible; }
+  .page-body     { padding: 0; overflow: visible; }
+  .dashboard     { display: block; }
+  .table-wrap    { overflow: visible; border: none; }
+  .table-wrap table { min-width: 0; }
+
+  @page { margin: 1cm; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   26. UTILITY CLASSES
+═══════════════════════════════════════════════════════ */
+.mt-8  { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mt-32 { margin-top: 32px; }
+.mb-8  { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+
+.flex        { display: flex; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-wrap   { flex-wrap: wrap; }
+.gap-8       { gap: 8px; }
+.gap-12      { gap: 12px; }
+.gap-16      { gap: 16px; }
+
+.text-muted    { color: var(--text-muted); }
+.text-success  { color: var(--success); }
+.text-warning  { color: var(--warning); }
+.text-danger   { color: var(--danger); }
+.text-accent   { color: var(--accent-light); }
+
+.w-full  { width: 100%; }
+.h-full  { height: 100%; }
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Visible only on certain breakpoints */
+@media (min-width: 768px) { .mobile-only { display: none !important; } }
+@media (max-width: 767px) { .desktop-only { display: none !important; } }
+
+/* ═══════════════════════════════════════════════════════
+   27. LARGE SCREEN OPTIMISATIONS (xl: 1440px+)
+═══════════════════════════════════════════════════════ */
+@media (min-width: 1440px) {
+  :root { --sidebar-w: 260px; }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+
+  .kitchen-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  .page-header { padding: 26px 32px 0; }
+  .page-body   { padding: 22px 32px 36px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   28. ADMIN DASHBOARD — override inline style overuse
+═══════════════════════════════════════════════════════ */
+
+/* Tab row — allow horizontal scroll on mobile */
+@media (max-width: 767px) {
+  /* Any flex row that wraps tabs/filters */
+  [style*="flexWrap"] {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  [style*="flexWrap"]::-webkit-scrollbar { display: none; }
+
+  /* Any inline grid with minmax — force 1 col */
+  [style*="minmax(280px"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="minmax(160px"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   29. INCOME / EXPENSES / WASTE TABLE (finance tabs)
+═══════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Hide notes / created-by columns on phone */
+  .table-wrap table th:nth-child(5),
+  .table-wrap table td:nth-child(5) { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   30. ATTENDANCE TAB
+═══════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Stack attendance grid to 2 cols */
+  .attendance-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   31. PAGE BODY OVERFLOW FIX
+═══════════════════════════════════════════════════════ */
+.page-body { overflow-x: hidden; }
+
+/* ═══════════════════════════════════════════════════════
+   32. SMOOTH MICRO-INTERACTIONS
+═══════════════════════════════════════════════════════ */
+.nav-item {
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.nav-item:active { transform: scale(0.97); }
+
+.stat-card,
+.kitchen-card,
+.menu-card,
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* ═══════════════════════════════════════════════════════
+   33. LOADING SCREEN
+═══════════════════════════════════════════════════════ */
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-base);
+}

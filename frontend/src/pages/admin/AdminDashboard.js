@@ -30,9 +30,6 @@ export default function AdminDashboard() {
   const { user, logout, theme, toggleTheme } = useAuth();
   const navigate = useNavigate();
 
-  // Close sidebar when tab changes on mobile
-  const handleTabChange = (id) => { setTab(id); setSidebarOpen(false); };
-
   const loadNotifs = React.useCallback(async () => {
     try {
       const res = await API.get("/notifications");
@@ -70,18 +67,23 @@ export default function AdminDashboard() {
 
   return (
     <div className="dashboard">
-      {/* Sidebar overlay (mobile) */}
+      {/* Mobile sidebar overlay */}
       <div
-        className={`sidebar-overlay ${sidebarOpen ? "visible" : ""}`}
+        className={`sidebar-overlay${sidebarOpen ? " visible" : ""}`}
         onClick={() => setSidebarOpen(false)}
       />
-
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+      <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
+        {/* Mobile close button inside sidebar */}
+        <button
+          className="sidebar-close-btn"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close menu"
+        >✕</button>
         <div className="sidebar-brand">
           <div className="brand-logo">
             {user?.restaurant_logo
               ? <img src={user.restaurant_logo} alt="logo"
-                  style={{ width: 36, height: 36, borderRadius: 10, objectFit: "cover" }} />
+                  style={{ width: 40, height: 40, borderRadius: 10, objectFit: "cover" }} />
               : <div className="logo-icon">🍽️</div>
             }
             <h2>RestoPOS</h2>
@@ -97,7 +99,7 @@ export default function AdminDashboard() {
                 <button
                   key={t.id}
                   className={`nav-item ${tab === t.id ? "active" : ""}`}
-                  onClick={() => handleTabChange(t.id)}
+                  onClick={() => { setTab(t.id); setSidebarOpen(false); }}
                 >
                   <span className="nav-icon">{t.icon}</span>{t.label}
                   {t.id === "notifications" && unreadCount > 0 && (
@@ -124,18 +126,19 @@ export default function AdminDashboard() {
       </aside>
 
       <div className="main-content">
-        {/* Mobile top bar */}
+        {/* Mobile topbar with hamburger */}
         <div className="mobile-topbar">
-          <button className="sidebar-toggle" onClick={() => setSidebarOpen(v => !v)}>☰</button>
+          <button className="sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+            ☰
+          </button>
           <span className="mobile-topbar-title">
-            {TABS.find(t => t.id === tab)?.icon} {TABS.find(t => t.id === tab)?.label || "Admin"}
+            {TABS.find(t => t.id === tab)?.icon} {TABS.find(t => t.id === tab)?.label || "Dashboard"}
           </span>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             {unreadCount > 0 && (
-              <div className="notif-bell-wrap">
-                <button className="btn btn-ghost btn-sm" onClick={() => handleTabChange("notifications")} style={{ fontSize: 16, padding: "6px 8px" }}>🔔</button>
-                <span className="notif-count">{unreadCount}</span>
-              </div>
+              <button className="btn btn-ghost btn-sm notif-mobile-btn" onClick={() => { setTab("notifications"); }}>
+                🔔 <span className="notif-count">{unreadCount}</span>
+              </button>
             )}
           </div>
         </div>

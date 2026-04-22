@@ -58,6 +58,7 @@ body,html{font-family:var(--font);}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
 @keyframes scaleIn{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
 @keyframes slideDown{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideUp{from{opacity:0;transform:translateY(100%);}to{opacity:1;transform:translateY(0);}}
 
 .spinner{width:22px;height:22px;border:2px solid var(--border-md);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;}
 .spinner-sm{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
@@ -149,34 +150,101 @@ mark{background:rgba(245,158,11,0.3);color:inherit;border-radius:2px;padding:0 1
 
 .flex-center{display:flex;align-items:center;justify-content:center;}
 
-/* ── Responsive ── */
-@media(max-width:767px){
-  .table-grid{grid-template-columns:repeat(3,1fr)!important;gap:8px!important;}
-  .table-tile{padding:12px 8px;min-height:76px;}
-  .tile-num{font-size:18px;}
-  .modal-overlay{align-items:flex-end;padding:0;}
-  .modal{border-radius:20px 20px 0 0;max-width:100%;max-height:92vh;}
-  .search-input{font-size:16px;} /* prevent iOS zoom */
-  /* Stack order view panels vertically */
-  div[style*="gridTemplateColumns:\"1fr clamp"]{
-    grid-template-columns:1fr!important;
-  }
-  div[style*="minmax(155px"]{
-    grid-template-columns:repeat(2,1fr)!important;
-  }
+/* ── ORDER VIEW LAYOUT ── */
+/* Desktop: side-by-side */
+.waiter-order-layout {
+  display: grid;
+  grid-template-columns: 1fr 382px;
+  gap: 20px;
+  max-width: 1280px;
+  margin: 0 auto;
+  animation: fadeIn 0.25s ease;
+  position: relative;
 }
-@media(max-width:479px){
-  .table-grid{grid-template-columns:repeat(2,1fr)!important;}
-  .btn{font-size:13px;padding:8px 13px;}
-  .cat-pill{padding:6px 11px;font-size:11px;}
-  div[style*="minmax(155px"]{
-    grid-template-columns:1fr 1fr!important;
-  }
-}
-/* Touch tap highlight */
-.btn,.nav-item,.table-tile,.menu-card,.cat-pill,.sub-pill{-webkit-tap-highlight-color:transparent;}
-`;
 
+/* ORDER SUMMARY PANEL – desktop sticky */
+.waiter-summary-col {
+  position: sticky;
+  top: 20px;
+  align-self: start;
+  max-height: calc(100vh - 84px);
+  overflow-y: auto;
+}
+
+/* Mobile: single column, summary becomes a bottom sheet */
+@media (max-width: 767px) {
+  .waiter-order-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .waiter-summary-col {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    top: auto;
+    max-height: 72vh;
+    z-index: 300;
+    background: var(--bg-card);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.25);
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+  }
+  .waiter-summary-col.open {
+    transform: translateY(0);
+  }
+  /* Floating cart button */
+  .waiter-cart-fab {
+    display: flex !important;
+  }
+  /* extra bottom padding so last menu item not hidden under FAB */
+  .waiter-menu-col {
+    padding-bottom: 90px;
+  }
+  /* table grid 2-col on phone portrait */
+  .table-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .table-tile { padding: 12px 8px !important; }
+  .tile-num   { font-size: 18px !important; }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .table-grid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+/* Floating cart button – hidden on desktop */
+.waiter-cart-fab {
+  display: none;
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 301;
+  background: var(--gradient-brand);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 13px 20px;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: var(--font);
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(245,158,11,0.45);
+  gap: 8px;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.waiter-cart-fab:active { transform: scale(0.96); }
+
+/* Bottom-sheet drag handle */
+.sheet-handle {
+  width: 40px; height: 4px;
+  background: var(--border-md);
+  border-radius: 2px;
+  margin: 10px auto 0;
+  cursor: pointer;
+}
+`;
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
 const ROUND_COLORS    = ["#6366f1","#10b981","#f59e0b","#ec4899","#06b6d4","#8b5cf6"];
@@ -185,7 +253,6 @@ const getRoundLabel   = i => ["Round 1","Round 2","Round 3","Round 4","Round 5",
 const getRoundOrdinal = i => ["1st","2nd","3rd","4th","5th","6th"][i] ?? `${i+1}th`;
 const catIcon         = cat => CAT_ICONS[cat?.toLowerCase()] || "🍽️";
 
-/* ─── Highlight helper ───────────────────────────────────────────────────── */
 function Hl({ text = "", q = "" }) {
   if (!q) return <>{text}</>;
   const lo = text.toLowerCase(), qi = lo.indexOf(q.toLowerCase());
@@ -197,7 +264,6 @@ function Hl({ text = "", q = "" }) {
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function WaiterPanel() {
-  /* core state */
   const [tables,           setTables]           = useState([]);
   const [menu,             setMenu]             = useState([]);
   const [specials,         setSpecials]         = useState({});
@@ -212,8 +278,8 @@ export default function WaiterPanel() {
   const [activeOrderType,  setActiveOrderType]  = useState("table");
   const [taxSettings,      setTaxSettings]      = useState(null);
   const [localTheme,       setLocalTheme]       = useState("light");
+  const [summaryOpen,      setSummaryOpen]      = useState(false); // mobile sheet
 
-  /* menu filter */
   const [searchQuery,    setSearchQuery]    = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeSubcat,   setActiveSubcat]   = useState("All");
@@ -223,7 +289,6 @@ export default function WaiterPanel() {
   const summaryRef = useRef(null);
   const styleRef   = useRef(null);
 
-  /* inject styles */
   useEffect(() => {
     if (!styleRef.current) {
       const el = document.createElement("style");
@@ -238,7 +303,6 @@ export default function WaiterPanel() {
     document.documentElement.setAttribute("data-theme", localTheme);
   }, [localTheme]);
 
-  /* ── data ── */
   const loadData = useCallback(async () => {
     try {
       const [t, m, s, tax] = await Promise.all([
@@ -283,11 +347,10 @@ export default function WaiterPanel() {
     } catch {}
   };
 
-  /* ── actions ── */
   const resetFilter = () => { setSearchQuery(""); setActiveCategory("All"); setActiveSubcat("All"); };
 
   const selectTable = async (table) => {
-    setSelectedTable(table); setActiveOrderType("table"); setView("order"); resetFilter();
+    setSelectedTable(table); setActiveOrderType("table"); setView("order"); resetFilter(); setSummaryOpen(false);
     await loadTableRounds(table);
   };
 
@@ -333,7 +396,7 @@ export default function WaiterPanel() {
       setAllRounds([{ order: res.data, items: [], roundNumber: 1 }]);
       setDraftRoundIdx(0); setSelectedTable(null); setActiveOrderType("takeaway");
     } catch {}
-    setRoundLoading(false); setView("order"); resetFilter();
+    setRoundLoading(false); setView("order"); resetFilter(); setSummaryOpen(false);
   };
 
   const addItem = async (menuItem) => {
@@ -361,9 +424,8 @@ export default function WaiterPanel() {
   };
 
   const handleLogout = async () => { try { await API.post("/auth/logout"); } catch {} logout(); navigate("/"); };
-  const goBack = () => { setView("tables"); setAllRounds([]); setDraftRoundIdx(null); setSelectedTable(null); loadData(); resetFilter(); };
+  const goBack = () => { setView("tables"); setAllRounds([]); setDraftRoundIdx(null); setSelectedTable(null); setSummaryOpen(false); loadData(); resetFilter(); };
 
-  /* ── derived menu data ── */
   const categories = useMemo(() => [...new Set(menu.map(m => m.category).filter(Boolean))], [menu]);
 
   const subcategories = useMemo(() => {
@@ -374,7 +436,6 @@ export default function WaiterPanel() {
   const handleCatClick = (cat) => { setActiveCategory(cat); setActiveSubcat("All"); setSearchQuery(""); };
   const handleSubClick = (sub) => { setActiveSubcat(sub); setSearchQuery(""); };
 
-  /* filtered + grouped items */
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (q) return menu.filter(m => m.name.toLowerCase().includes(q) || m.category?.toLowerCase().includes(q) || m.subcategory?.toLowerCase().includes(q));
@@ -386,7 +447,6 @@ export default function WaiterPanel() {
     return items;
   }, [menu, searchQuery, activeCategory, activeSubcat]);
 
-  /* group: { [category]: { [subcategory|"__"]: item[] } } */
   const grouped = useMemo(() => {
     const out = {};
     filteredItems.forEach(item => {
@@ -399,7 +459,6 @@ export default function WaiterPanel() {
     return out;
   }, [filteredItems]);
 
-  /* totals */
   const combinedTotal = allRounds.reduce((s, r) => s + Number(r.order?.total || 0), 0);
   const taxRate       = taxSettings ? parseFloat(taxSettings.tax_rate) || 13 : 13;
   const taxEnabled    = taxSettings ? taxSettings.tax_enabled !== false : false;
@@ -409,34 +468,45 @@ export default function WaiterPanel() {
   const draftRound    = draftRoundIdx !== null ? allRounds[draftRoundIdx] : null;
   const canAddItems   = draftRound !== null && draftRound.order.status === "draft";
   const sentCount     = allRounds.filter(r => r.order.status !== "draft").length;
-
   const isSearching   = searchQuery.trim().length > 0;
   const showAllCats   = activeCategory === "All" || isSearching;
+
+  // Cart item count for FAB badge
+  const cartItemCount = draftRound?.items?.reduce((s, i) => s + (i.quantity || 1), 0) || 0;
 
   /* ─── RENDER ─────────────────────────────────────────────────────────── */
   return (
     <div style={{ minHeight:"100vh", background:"var(--bg-base)", display:"flex", flexDirection:"column", fontFamily:"var(--font)", color:"var(--text-primary)", transition:"background 0.3s,color 0.3s" }}>
 
       {/* ══ HEADER ═══════════════════════════════════════════════════════ */}
-      <header style={{ background:"var(--sidebar-bg)", borderBottom:"1px solid var(--border)", padding:"0 clamp(12px,3vw,24px)", height:60, display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:200, boxShadow:"var(--shadow-sm)", flexShrink:0 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          {view === "order" && <button className="btn btn-ghost btn-sm" onClick={goBack} style={{ padding:"6px 10px" }}>←</button>}
+      <header style={{
+        background:"var(--sidebar-bg)", borderBottom:"1px solid var(--border)",
+        padding:"0 16px", height:60, display:"flex", alignItems:"center",
+        justifyContent:"space-between", position:"sticky", top:0, zIndex:200,
+        boxShadow:"var(--shadow-sm)",
+      }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+          {view === "order" && (
+            <button className="btn btn-ghost btn-sm" onClick={goBack} style={{ padding:"6px 10px", flexShrink:0 }}>← Back</button>
+          )}
           <div style={{ width:34, height:34, borderRadius:10, background:"var(--gradient-brand)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>🧑‍🍽️</div>
-          <div>
-            <div style={{ fontWeight:800, fontSize:14, letterSpacing:"-0.02em" }}>Waiter Panel</div>
-            <div style={{ fontSize:11, color:"var(--text-muted)", fontWeight:500 }}>{user?.restaurant_name}</div>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontWeight:800, fontSize:14, letterSpacing:"-0.02em", whiteSpace:"nowrap" }}>Waiter Panel</div>
+            <div style={{ fontSize:11, color:"var(--text-muted)", fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+              {user?.restaurant_name} · {user?.name}
+            </div>
           </div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-          <button className="theme-btn" onClick={() => setLocalTheme(t => t==="dark"?"light":"dark")} style={{ padding:"6px 10px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+          <button className="theme-btn" onClick={() => setLocalTheme(t => t==="dark"?"light":"dark")}>
             <span style={{ fontSize:14 }}>{localTheme==="dark"?"🌙":"☀️"}</span>
             <div className="tog-track"><div className="tog-thumb" style={{ left:localTheme==="dark"?"16px":"2px" }} /></div>
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={handleLogout} style={{ padding:"7px 10px" }}>🚪</button>
+          <button className="btn btn-ghost btn-sm" onClick={handleLogout} style={{ padding:"7px 11px" }}>🚪</button>
         </div>
       </header>
 
-      <div style={{ flex:1, overflow:"auto", padding:"clamp(12px,3vw,20px) clamp(12px,3vw,22px)" }}>
+      <div style={{ flex:1, overflow:"auto", padding:"16px" }}>
 
         {/* ═══ TABLES VIEW ═════════════════════════════════════════════ */}
         {view === "tables" && (
@@ -446,14 +516,14 @@ export default function WaiterPanel() {
                 <h1 style={{ fontSize:"clamp(18px,4vw,22px)", fontWeight:800, letterSpacing:"-0.03em" }}>Floor Plan</h1>
                 <p style={{ fontSize:13, color:"var(--text-muted)", marginTop:2 }}>Select a table to start or view an order</p>
               </div>
-              <div style={{ display:"flex", gap:7 }}>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                 <button className="btn btn-primary" onClick={startTakeaway}>📦 New Takeaway</button>
                 <button className="btn btn-secondary btn-sm" onClick={loadData}>↻ Refresh</button>
               </div>
             </div>
 
             {Object.keys(specials).length > 0 && (
-              <div style={{ background:"var(--accent-bg)", border:"1px solid var(--accent-border)", borderRadius:14, padding:"12px 16px", marginBottom:18, display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+              <div style={{ background:"var(--accent-bg)", border:"1px solid var(--accent-border)", borderRadius:14, padding:"11px 16px", marginBottom:18, display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
                 <span>⭐</span>
                 <span style={{ fontWeight:800, color:"var(--accent)", fontSize:13 }}>Today's Specials</span>
                 {Object.values(specials).map((sp, i) => (
@@ -489,16 +559,16 @@ export default function WaiterPanel() {
 
         {/* ═══ ORDER VIEW ══════════════════════════════════════════════ */}
         {view === "order" && (
-          <div style={{ display:"grid", gridTemplateColumns:"1fr clamp(300px, 32vw, 382px)", gap:"clamp(12px,2vw,20px)", maxWidth:1280, margin:"0 auto", animation:"fadeIn 0.25s ease" }}>
+          <div className="waiter-order-layout">
 
             {/* ╔══ LEFT: MENU ══╗ */}
-            <div style={{ minWidth:0 }}>
+            <div className="waiter-menu-col" style={{ minWidth:0 }}>
 
               {/* Status badges */}
-              <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:16 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:14 }}>
                 {activeOrderType === "takeaway"
-                  ? <div style={{ background:"linear-gradient(135deg,#f59e0b,#d97706)", color:"#fff", borderRadius:10, padding:"8px 16px", fontWeight:800, fontSize:14 }}>📦 Takeaway Order</div>
-                  : <div style={{ background:"var(--gradient-brand)", color:"#fff", borderRadius:10, padding:"8px 16px", fontWeight:800, fontSize:14 }}>🪑 Table {selectedTable?.table_number}</div>
+                  ? <div style={{ background:"linear-gradient(135deg,#f59e0b,#d97706)", color:"#fff", borderRadius:10, padding:"7px 14px", fontWeight:800, fontSize:13 }}>📦 Takeaway Order</div>
+                  : <div style={{ background:"var(--gradient-brand)", color:"#fff", borderRadius:10, padding:"7px 14px", fontWeight:800, fontSize:13 }}>🪑 Table {selectedTable?.table_number}</div>
                 }
                 {allRounds.map((r, idx) =>
                   r.order.status !== "draft" && (
@@ -510,13 +580,12 @@ export default function WaiterPanel() {
                 {draftRoundIdx !== null && <span className="badge badge-warning">✏️ {getRoundOrdinal(draftRoundIdx)} order</span>}
               </div>
 
-              {/* No order started yet */}
               {roundLoading ? (
                 <div className="flex-center" style={{ padding:80 }}><div className="spinner" /></div>
               ) : allRounds.length === 0 ? (
-                <div style={{ background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:16, padding:50, textAlign:"center" }}>
-                  <div style={{ fontSize:52, marginBottom:14 }}>{activeOrderType==="takeaway"?"📦":"🪑"}</div>
-                  <div style={{ fontWeight:700, fontSize:17, marginBottom:8 }}>
+                <div style={{ background:"var(--bg-card)", border:"1px solid var(--border)", borderRadius:16, padding:"40px 24px", textAlign:"center" }}>
+                  <div style={{ fontSize:48, marginBottom:12 }}>{activeOrderType==="takeaway"?"📦":"🪑"}</div>
+                  <div style={{ fontWeight:700, fontSize:16, marginBottom:8 }}>
                     {activeOrderType==="takeaway" ? "New Takeaway Order" : `Table ${selectedTable?.table_number} is free`}
                   </div>
                   <p style={{ color:"var(--text-muted)", fontSize:13, marginBottom:20 }}>
@@ -526,9 +595,8 @@ export default function WaiterPanel() {
                 </div>
               ) : (
                 <>
-                  {/* Add new round prompt */}
                   {hasSentRounds && draftRoundIdx === null && activeOrderType !== "takeaway" && (
-                    <div style={{ background:"var(--bg-card)", border:"1px solid var(--accent-border)", borderRadius:12, padding:"13px 18px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
+                    <div style={{ background:"var(--bg-card)", border:"1px solid var(--accent-border)", borderRadius:12, padding:"12px 16px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
                       <div>
                         <div style={{ fontWeight:700, fontSize:14 }}>Need more items?</div>
                         <div style={{ fontSize:12, color:"var(--text-muted)", marginTop:3 }}>Only new items from this round go to kitchen.</div>
@@ -540,26 +608,19 @@ export default function WaiterPanel() {
                     </div>
                   )}
 
-                  {/* ════ SEARCH BAR ════ */}
+                  {/* SEARCH */}
                   <div style={{ marginBottom:10 }}>
                     <div className="search-wrap">
                       <span className="search-icon">🔍</span>
-                      <input
-                        className="search-input"
-                        type="text"
-                        placeholder="Search items, categories, sub-categories…"
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                      />
+                      <input className="search-input" type="text" placeholder="Search items…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                       {searchQuery && <button className="search-clear" onClick={() => setSearchQuery("")}>✕</button>}
                     </div>
                   </div>
 
-                  {/* ════ CATEGORY PILLS ════ */}
+                  {/* CATEGORY PILLS */}
                   {!isSearching && (
                     <div style={{ animation:"slideDown 0.18s ease" }}>
                       <div className="cat-nav" style={{ marginBottom:8 }}>
-                        {/* All */}
                         <button className={`cat-pill${activeCategory==="All"?" active":""}`} onClick={() => handleCatClick("All")}>
                           🍽️ All
                           <span style={{ fontSize:10, fontWeight:700, background:"rgba(255,255,255,0.1)", borderRadius:8, padding:"1px 6px", marginLeft:2 }}>{menu.length}</span>
@@ -574,7 +635,6 @@ export default function WaiterPanel() {
                         ))}
                       </div>
 
-                      {/* ════ SUBCATEGORY PILLS ════ */}
                       {activeCategory !== "All" && subcategories.length > 0 && (
                         <div style={{ animation:"slideDown 0.16s ease", marginBottom:14 }}>
                           <div className="sub-nav">
@@ -588,7 +648,6 @@ export default function WaiterPanel() {
                               </button>
                             ))}
                           </div>
-                          {/* divider */}
                           <div style={{ height:1, background:"var(--border)", marginTop:12 }} />
                         </div>
                       )}
@@ -599,18 +658,14 @@ export default function WaiterPanel() {
                   {isSearching && (
                     <div style={{ marginBottom:12, display:"flex", alignItems:"center", gap:6, animation:"slideDown 0.14s ease" }}>
                       <span style={{ fontSize:13, color:"var(--text-muted)" }}>
-                        {filteredItems.length === 0
-                          ? `No results for "${searchQuery}"`
-                          : `${filteredItems.length} result${filteredItems.length!==1?"s":""} for`}
+                        {filteredItems.length === 0 ? `No results for "${searchQuery}"` : `${filteredItems.length} result${filteredItems.length!==1?"s":""} for`}
                       </span>
                       {filteredItems.length > 0 && <span style={{ fontSize:13, fontWeight:700, color:"var(--accent)" }}>"{searchQuery}"</span>}
-                      <button style={{ marginLeft:"auto", fontSize:12, background:"none", border:"none", cursor:"pointer", color:"var(--text-muted)", fontFamily:"var(--font)", fontWeight:600 }} onClick={() => setSearchQuery("")}>
-                        Clear
-                      </button>
+                      <button style={{ marginLeft:"auto", fontSize:12, background:"none", border:"none", cursor:"pointer", color:"var(--text-muted)", fontFamily:"var(--font)", fontWeight:600 }} onClick={() => setSearchQuery("")}>Clear</button>
                     </div>
                   )}
 
-                  {/* ════ MENU ITEMS ════ */}
+                  {/* MENU ITEMS */}
                   {filteredItems.length === 0 ? (
                     <div style={{ padding:"50px 20px", textAlign:"center", color:"var(--text-muted)" }}>
                       <div style={{ fontSize:40, marginBottom:10 }}>🔍</div>
@@ -619,13 +674,11 @@ export default function WaiterPanel() {
                     </div>
                   ) : (
                     Object.entries(grouped).map(([cat, subcats]) => (
-                      <div key={cat} style={{ marginBottom:28 }}>
-
-                        {/* Category heading — show when browsing All or searching */}
+                      <div key={cat} style={{ marginBottom:24 }}>
                         {showAllCats && (
-                          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14, paddingBottom:10, borderBottom:"2px solid var(--border)" }}>
-                            <span style={{ fontSize:20 }}>{catIcon(cat)}</span>
-                            <span style={{ fontWeight:800, fontSize:16, letterSpacing:"-0.02em" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, paddingBottom:8, borderBottom:"2px solid var(--border)" }}>
+                            <span style={{ fontSize:18 }}>{catIcon(cat)}</span>
+                            <span style={{ fontWeight:800, fontSize:15, letterSpacing:"-0.02em" }}>
                               {cat.charAt(0).toUpperCase()+cat.slice(1)}
                             </span>
                             <span style={{ fontSize:11, color:"var(--text-muted)", background:"var(--bg-hover)", borderRadius:8, padding:"2px 8px", fontWeight:700 }}>
@@ -633,24 +686,17 @@ export default function WaiterPanel() {
                             </span>
                           </div>
                         )}
-
-                        {/* Subcategory groups */}
                         {Object.entries(subcats).map(([sub, items]) => (
-                          <div key={sub} style={{ marginBottom:18 }}>
-
-                            {/* Subcategory heading (skip for "__") */}
+                          <div key={sub} style={{ marginBottom:16 }}>
                             {sub !== "__" && (
-                              <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
+                              <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:8 }}>
                                 <span style={{ width:6, height:6, borderRadius:"50%", background:"var(--sub-active-text)", display:"inline-block", flexShrink:0 }} />
-                                <span style={{ fontSize:11, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.07em", color:"var(--sub-active-text)" }}>
-                                  {sub}
-                                </span>
+                                <span style={{ fontSize:11, fontWeight:800, textTransform:"uppercase", letterSpacing:"0.07em", color:"var(--sub-active-text)" }}>{sub}</span>
                                 <span style={{ fontSize:10, color:"var(--text-muted)", fontWeight:600 }}>— {items.length} item{items.length!==1?"s":""}</span>
                               </div>
                             )}
-
-                            {/* Cards grid */}
-                            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))", gap:10 }}>
+                            {/* Responsive grid: 2 cols on mobile, auto-fill on desktop */}
+                            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:8 }}>
                               {items.map(item => {
                                 const special      = specials[item.id];
                                 const displayPrice = special ? special.discounted_price : item.price;
@@ -664,12 +710,11 @@ export default function WaiterPanel() {
                                     <div style={{ fontWeight:700, fontSize:13, marginBottom:4, lineHeight:1.35 }}>
                                       <Hl text={item.name} q={searchQuery} />
                                     </div>
-                                    {/* show subcategory label when browsing All */}
                                     {item.subcategory && showAllCats && sub === "__" && (
                                       <div style={{ fontSize:10, color:"var(--sub-active-text)", marginBottom:4, fontWeight:600 }}>{item.subcategory}</div>
                                     )}
                                     <div style={{ display:"flex", alignItems:"baseline", gap:5 }}>
-                                      <span style={{ color:"var(--success)", fontWeight:800, fontSize:14 }}>Rs. {Number(displayPrice).toLocaleString()}</span>
+                                      <span style={{ color:"var(--success)", fontWeight:800, fontSize:13 }}>Rs. {Number(displayPrice).toLocaleString()}</span>
                                       {special && special.discount_pct > 0 && (
                                         <span style={{ textDecoration:"line-through", fontSize:11, color:"var(--text-muted)" }}>Rs. {Number(item.price).toLocaleString()}</span>
                                       )}
@@ -688,8 +733,12 @@ export default function WaiterPanel() {
             </div>
 
             {/* ╔══ RIGHT: ORDER SUMMARY ══╗ */}
-            <div style={{ position:"sticky", top:20, alignSelf:"start" }}>
-              <div className="order-panel">
+            {/* On mobile this is the bottom sheet; on desktop it's a sticky sidebar */}
+            <div className={`waiter-summary-col${summaryOpen ? " open" : ""}`}>
+              {/* Drag handle — mobile only */}
+              <div className="sheet-handle" onClick={() => setSummaryOpen(false)} />
+
+              <div className="order-panel" style={{ borderRadius:0, border:"none", boxShadow:"none" }}>
                 <div className="order-panel-hdr">
                   <div>
                     <div style={{ fontWeight:800, fontSize:15, letterSpacing:"-0.02em" }}>Order Summary</div>
@@ -698,12 +747,16 @@ export default function WaiterPanel() {
                         : selectedTable ? `Table ${selectedTable.table_number} · ${allRounds.length} round${allRounds.length!==1?"s":""}` : "No active order"}
                     </div>
                   </div>
-                  {allRounds.length > 0 && <span className="badge badge-success">{sentCount}/{allRounds.length} sent</span>}
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    {allRounds.length > 0 && <span className="badge badge-success">{sentCount}/{allRounds.length} sent</span>}
+                    {/* Close button — mobile only */}
+                    <button onClick={() => setSummaryOpen(false)} style={{ display:"none", background:"none", border:"none", cursor:"pointer", fontSize:20, color:"var(--text-muted)", lineHeight:1, padding:"2px 4px" }} className="summary-close-btn">✕</button>
+                  </div>
                 </div>
 
                 <div ref={summaryRef} style={{ maxHeight:"calc(100vh - 310px)", overflowY:"auto" }}>
                   {allRounds.length === 0 && (
-                    <div style={{ padding:"32px 20px", textAlign:"center", color:"var(--text-muted)", fontSize:13 }}>
+                    <div style={{ padding:"28px 20px", textAlign:"center", color:"var(--text-muted)", fontSize:13 }}>
                       {activeOrderType==="table" ? "Start an order to see items here" : "Add items to the takeaway order"}
                     </div>
                   )}
@@ -721,7 +774,6 @@ export default function WaiterPanel() {
                           </span>
                           {isSent ? <span style={{ fontSize:11, color:"var(--success)", fontWeight:700 }}>✓ Sent</span> : <span style={{ fontSize:11, color, fontWeight:600 }}>Draft</span>}
                         </div>
-
                         <div>
                           {round.items.length === 0
                             ? <div style={{ padding:"14px 18px", color:"var(--text-muted)", fontSize:12, textAlign:"center" }}>Tap menu items to add</div>
@@ -739,7 +791,6 @@ export default function WaiterPanel() {
                             ))
                           }
                         </div>
-
                         <div style={{ padding:"7px 18px", display:"flex", justifyContent:"space-between", fontSize:12, borderBottom:"1px solid var(--border)", background:"var(--bg-surface)" }}>
                           <span style={{ color:"var(--text-muted)" }}>{round.order.order_type === "takeaway" ? "📦 Takeaway" : getRoundLabel(idx)} subtotal</span>
                           <span style={{ fontWeight:700, color:isSent?"var(--text-primary)":color }}>Rs. {Number(round.order?.total||0).toLocaleString()}</span>
@@ -759,7 +810,7 @@ export default function WaiterPanel() {
                     )}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <div>
-                        <div style={{ fontWeight:800, fontSize:15, letterSpacing:"-0.02em" }}>Grand Total : </div>
+                        <div style={{ fontWeight:800, fontSize:15, letterSpacing:"-0.02em" }}>Grand Total :</div>
                         {taxEnabled && <div style={{ fontSize:10, color:"var(--text-muted)", marginTop:1 }}>VAT inclusive</div>}
                       </div>
                       <span style={{ color:"var(--success)", fontSize:20, fontWeight:900, letterSpacing:"-0.03em" }}>Rs. {grandTotal.toLocaleString()}</span>
@@ -768,7 +819,7 @@ export default function WaiterPanel() {
                 )}
 
                 {draftRound && draftRound.items.length > 0 && (
-                  <div style={{ padding:"14px 16px", borderTop:"1px solid var(--border)" }}>
+                  <div style={{ padding:"12px 14px", borderTop:"1px solid var(--border)" }}>
                     <button className="btn btn-primary" style={{ width:"100%", fontWeight:800, fontSize:14, padding:"13px 0", borderRadius:12, background:`linear-gradient(135deg,${ROUND_COLORS[draftRoundIdx%6]},${ROUND_COLORS[(draftRoundIdx+1)%6]})` }} onClick={() => setConfirmModal(true)}>
                       🚀 Send {draftRound?.order.order_type === "takeaway" ? "Takeaway Order" : getRoundLabel(draftRoundIdx)} to Kitchen
                     </button>
@@ -777,7 +828,7 @@ export default function WaiterPanel() {
                 )}
 
                 {allRounds.length > 0 && draftRoundIdx === null && (
-                  <div style={{ padding:"14px 16px", borderTop:"1px solid var(--border)" }}>
+                  <div style={{ padding:"12px 14px", borderTop:"1px solid var(--border)" }}>
                     <div style={{ background:"var(--success-bg)", border:"1px solid var(--success-border)", borderRadius:10, padding:"10px 14px", textAlign:"center", color:"var(--success)", fontWeight:700, fontSize:13, marginBottom:10 }}>
                       ✅ All rounds sent to kitchen
                     </div>
@@ -791,9 +842,26 @@ export default function WaiterPanel() {
                 )}
               </div>
             </div>
+
+            {/* ── MOBILE OVERLAY when summary sheet is open ── */}
+            {summaryOpen && (
+              <div onClick={() => setSummaryOpen(false)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)", zIndex:299, backdropFilter:"blur(2px)" }} />
+            )}
           </div>
         )}
       </div>
+
+      {/* ── FLOATING CART FAB (mobile only, visible in order view) ── */}
+      {view === "order" && (
+        <button className="waiter-cart-fab" onClick={() => setSummaryOpen(o => !o)}>
+          🧾 Order Summary
+          {cartItemCount > 0 && (
+            <span style={{ background:"#fff", color:"var(--accent)", borderRadius:20, padding:"1px 8px", fontSize:12, fontWeight:900 }}>
+              {cartItemCount}
+            </span>
+          )}
+        </button>
+      )}
 
       {/* ══ CONFIRM MODAL ════════════════════════════════════════════════ */}
       {confirmModal && draftRound && (

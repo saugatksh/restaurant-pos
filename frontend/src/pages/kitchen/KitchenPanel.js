@@ -10,7 +10,6 @@ function timeSince(dateStr) {
   return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}m ago`;
 }
 
-// Aggregate duplicate items — Burger×1 + Burger×1 → Burger×2
 function aggregateItems(items = []) {
   const map = {};
   items.forEach((item) => {
@@ -53,70 +52,118 @@ export default function KitchenPanel() {
     logout(); navigate("/kitchen");
   };
 
-  const pending = orders.filter(o => o.status === "pending");
-  const preparing = orders.filter(o => o.status === "preparing");
+  const pending      = orders.filter(o => o.status === "pending");
+  const preparing    = orders.filter(o => o.status === "preparing");
   const takeawayCount = orders.filter(o => o.order_type === "takeaway").length;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-base)", display: "flex", flexDirection: "column" }}>
-      <header style={{
-        background: "var(--bg-sidebar, var(--bg-card))", borderBottom: "1px solid var(--border)",
-        padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
-        flexShrink: 0, gap: 10, flexWrap: "wrap",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+
+      {/* ── HEADER ── responsive: wraps on mobile */}
+      <header className="kitchen-header">
+        {/* Left: logo + title */}
+        <div className="kitchen-header-left">
           <div style={{
-            width: 40, height: 40, background: "var(--gradient-brand, linear-gradient(135deg,#ef4444,#b91c1c))", borderRadius: 12,
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0,
+            width: 40, height: 40, background: "var(--gradient-brand)", borderRadius: 12,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 19, boxShadow: "var(--shadow-glow)", flexShrink: 0,
           }}>👨‍🍳</div>
           <div>
             <div style={{ fontWeight: 800, fontSize: 15 }}>Kitchen Station</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{user?.restaurant_name} · {user?.name}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              {user?.restaurant_name} · {user?.name}
+            </div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <div className="kitchen-header-stats" style={{ display: "flex", gap: 6, padding: "6px 12px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 20 }}>
-            <span style={{ fontSize: 12, color: "var(--warning)", fontWeight: 700 }}>🕐 {pending.length} Pending</span>
-            <span style={{ fontSize: 12, color: "var(--info, #38bdf8)", fontWeight: 700 }}>🔥 {preparing.length} Preparing</span>
-            {takeawayCount > 0 && <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700 }}>📦 {takeawayCount} Takeaway</span>}
+
+        {/* Right: stats + controls */}
+        <div className="kitchen-header-right">
+          {/* Stats bar — moves to new row on xs */}
+          <div className="kitchen-stats-bar">
+            <span style={{ fontSize: 12, color: "var(--warning)", fontWeight: 700, whiteSpace: "nowrap" }}>
+              🕐 {pending.length} Pending
+            </span>
+            <span style={{ fontSize: 12, color: "var(--info)", fontWeight: 700, whiteSpace: "nowrap" }}>
+              🔥 {preparing.length} Preparing
+            </span>
+            {takeawayCount > 0 && (
+              <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700, whiteSpace: "nowrap" }}>
+                📦 {takeawayCount} Takeaway
+              </span>
+            )}
           </div>
-          <button className="theme-toggle" onClick={toggleTheme} style={{ padding: "7px 10px" }}>
-            <span>{theme === "dark" ? "🌙" : "☀️"}</span>
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={load}>↻</button>
-          <button className="btn btn-ghost btn-sm" onClick={handleLogout}>🚪</button>
+
+          {/* Controls */}
+          <div className="kitchen-header-controls">
+            <button className="theme-toggle" onClick={toggleTheme}>
+              <span>{theme === "dark" ? "🌙" : "☀️"}</span>
+              <div className="toggle-track"><div className="toggle-thumb" /></div>
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={load}>↻</button>
+            <button className="btn btn-ghost btn-sm" onClick={handleLogout}>🚪</button>
+          </div>
         </div>
       </header>
 
-      <div style={{ flex: 1, overflow: "auto", padding: "clamp(12px, 3vw, 24px)" }}>
+      {/* ── BODY ── */}
+      <div style={{ flex: 1, overflow: "auto", padding: "16px" }}>
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><div className="spinner" /></div>
+          <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+            <div className="spinner" />
+          </div>
         ) : orders.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">🍽️</div>
             <h3>No Active Orders</h3>
             <p>Orders from waiters will appear here automatically.</p>
-            <p style={{ marginTop: 8, fontSize: 11, color: "var(--text-muted)" }}>Auto-refreshes every 8 seconds</p>
+            <p style={{ marginTop: 8, fontSize: 11, color: "var(--text-muted)" }}>
+              Auto-refreshes every 8 seconds
+            </p>
           </div>
         ) : (
           <>
             {pending.length > 0 && (
-              <div style={{ marginBottom: 32 }}>
-                <div className="section-title">
-                  <span style={{ background: "var(--warning-bg)", color: "var(--warning)", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>🕐 NEW ORDERS — {pending.length}</span>
+              <div style={{ marginBottom: 28 }}>
+                <div className="kitchen-section-title">
+                  <span style={{
+                    background: "var(--warning-bg)", color: "var(--warning)",
+                    padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                  }}>
+                    🕐 NEW ORDERS — {pending.length}
+                  </span>
                 </div>
                 <div className="kitchen-grid">
-                  {pending.map(order => <KitchenCard key={order.id} order={order} updating={updating === order.id} onPreparing={() => updateStatus(order.id, "preparing")} />)}
+                  {pending.map(order => (
+                    <KitchenCard
+                      key={order.id}
+                      order={order}
+                      updating={updating === order.id}
+                      onPreparing={() => updateStatus(order.id, "preparing")}
+                    />
+                  ))}
                 </div>
               </div>
             )}
+
             {preparing.length > 0 && (
               <div>
-                <div className="section-title">
-                  <span style={{ background: "var(--info-bg)", color: "var(--info)", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>🔥 PREPARING — {preparing.length}</span>
+                <div className="kitchen-section-title">
+                  <span style={{
+                    background: "var(--info-bg)", color: "var(--info)",
+                    padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                  }}>
+                    🔥 PREPARING — {preparing.length}
+                  </span>
                 </div>
                 <div className="kitchen-grid">
-                  {preparing.map(order => <KitchenCard key={order.id} order={order} updating={updating === order.id} onServed={() => updateStatus(order.id, "served")} />)}
+                  {preparing.map(order => (
+                    <KitchenCard
+                      key={order.id}
+                      order={order}
+                      updating={updating === order.id}
+                      onServed={() => updateStatus(order.id, "served")}
+                    />
+                  ))}
                 </div>
               </div>
             )}
@@ -137,8 +184,6 @@ function KitchenCard({ order, updating, onPreparing, onServed }) {
   }, [order.created_at]);
 
   const isUrgent = (Date.now() - new Date(order.created_at)) > 15 * 60 * 1000;
-
-  // ✅ Aggregate: Coke×1 + Coke×1 → Coke×2
   const aggregatedItems = aggregateItems(order.items);
 
   return (
@@ -149,30 +194,51 @@ function KitchenCard({ order, updating, onPreparing, onServed }) {
         borderWidth: isTakeaway ? 2 : 1,
       }}
     >
+      {/* Coloured top banner */}
       <div style={{
-        borderRadius: "10px 10px 0 0", margin: "-1px -1px 12px -1px", padding: "10px 16px",
-        background: isTakeaway ? "linear-gradient(135deg,#f59e0b,#d97706)" : "linear-gradient(135deg,#3b82f6,#2563eb)",
+        borderRadius: "10px 10px 0 0",
+        margin: "-1px -1px 12px -1px",
+        padding: "10px 14px",
+        background: isTakeaway
+          ? "linear-gradient(135deg,#f59e0b,#d97706)"
+          : "linear-gradient(135deg,#3b82f6,#2563eb)",
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
       }}>
-        <span style={{ fontSize: 20 }}>{isTakeaway ? "📦" : "🪑"}</span>
-        <span style={{ color: "#fff", fontWeight: 900, fontSize: 16, letterSpacing: 1.5, textTransform: "uppercase", textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>
+        <span style={{ fontSize: 18 }}>{isTakeaway ? "📦" : "🪑"}</span>
+        <span style={{
+          color: "#fff", fontWeight: 900, fontSize: 14,
+          letterSpacing: 1, textTransform: "uppercase",
+          textShadow: "0 1px 3px rgba(0,0,0,0.3)",
+          textAlign: "center",
+        }}>
           {isTakeaway
-            ? (order.table_number ? `TAKEAWAY ORDER (Table ${order.table_number})` : "TAKEAWAY ORDER")
+            ? (order.table_number ? `TAKEAWAY (Table ${order.table_number})` : "TAKEAWAY ORDER")
             : `TABLE ${order.table_number}`}
         </span>
       </div>
 
       <div className="kitchen-card-header">
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <div style={{ fontWeight: 700, fontSize: 14 }}>Order #{order.id}</div>
             {isUrgent && order.status === "pending" && (
-              <div style={{ background: "var(--danger-bg)", color: "var(--danger)", padding: "3px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700 }} className="animate-pulse">⚠️ URGENT</div>
+              <div style={{
+                background: "var(--danger-bg)", color: "var(--danger)",
+                padding: "2px 7px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+              }} className="animate-pulse">⚠️ URGENT</div>
             )}
           </div>
-          {order.waiter_name && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>👤 {order.waiter_name}</div>}
+          {order.waiter_name && (
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+              👤 {order.waiter_name}
+            </div>
+          )}
           {isTakeaway && (
-            <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginTop: 3, background: "#fef9c3", padding: "2px 8px", borderRadius: 20, display: "inline-block" }}>
+            <div style={{
+              fontSize: 11, color: "#f59e0b", fontWeight: 700, marginTop: 3,
+              background: "#fef9c3", padding: "2px 8px", borderRadius: 20,
+              display: "inline-block",
+            }}>
               📦 Pack for Takeaway{order.table_number ? ` — Table ${order.table_number}` : ""}
             </div>
           )}
@@ -183,23 +249,31 @@ function KitchenCard({ order, updating, onPreparing, onServed }) {
       <div className="kitchen-card-body">
         {aggregatedItems.map((item, i) => (
           <div key={i} className="kitchen-item">
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div className="kitchen-item-name">{item.item || item.name}</div>
-              {item.category && <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "capitalize" }}>{item.category}</div>}
+              {item.category && (
+                <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "capitalize" }}>
+                  {item.category}
+                </div>
+              )}
             </div>
             <div className="kitchen-item-qty" style={{
               background: item.quantity > 1 ? "rgba(245,158,11,0.15)" : undefined,
               color: item.quantity > 1 ? "#d97706" : undefined,
               fontWeight: item.quantity > 1 ? 900 : 700,
               fontSize: item.quantity > 1 ? 17 : 14,
-              padding: "4px 10px", borderRadius: 8, minWidth: 40, textAlign: "center",
+              padding: "4px 10px", borderRadius: 8, minWidth: 38, textAlign: "center",
             }}>
               ×{item.quantity}
             </div>
           </div>
         ))}
         {order.notes && (
-          <div style={{ marginTop: 10, padding: "8px 10px", background: "var(--warning-bg)", borderRadius: 8, fontSize: 12, color: "var(--warning)", fontWeight: 500 }}>
+          <div style={{
+            marginTop: 10, padding: "8px 10px",
+            background: "var(--warning-bg)", borderRadius: 8,
+            fontSize: 12, color: "var(--warning)", fontWeight: 500,
+          }}>
             📝 {order.notes}
           </div>
         )}
