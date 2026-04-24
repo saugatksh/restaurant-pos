@@ -731,7 +731,7 @@ export default function CashCounterPanel() {
       )}
 
       {/* ── MOBILE FAB to open bill panel ── */}
-      {selectedOrder && step !== "bill" && (
+      {selectedOrder && step !== "bill" && !billPanelOpen && (
         <button className="cc-bill-fab" onClick={() => setBillPanelOpen(o => !o)}>
           🧾 View Bill
           <span style={{ background: "#fff", color: "#6366f1", borderRadius: 20, padding: "1px 8px", fontSize: 12, fontWeight: 900 }}>

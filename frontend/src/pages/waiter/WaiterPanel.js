@@ -851,9 +851,9 @@ export default function WaiterPanel() {
         )}
       </div>
 
-      {/* ── FLOATING CART FAB (mobile only, visible in order view) ── */}
-      {view === "order" && (
-        <button className="waiter-cart-fab" onClick={() => setSummaryOpen(o => !o)}>
+      {/* ── FLOATING CART FAB (mobile only, visible in order view when summary is closed) ── */}
+      {view === "order" && !summaryOpen && (
+        <button className="waiter-cart-fab" onClick={() => setSummaryOpen(true)}>
           🧾 Order Summary
           {cartItemCount > 0 && (
             <span style={{ background:"#fff", color:"var(--accent)", borderRadius:20, padding:"1px 8px", fontSize:12, fontWeight:900 }}>

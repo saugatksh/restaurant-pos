@@ -373,7 +373,7 @@ function SARestaurantsTab() {
                 </div>
                 <div className="form-group">
                   <label>Phone</label>
-                  <input placeholder="+977-..." value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+                  <input type="tel" placeholder="98XXXXXXXX" maxLength={10} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
                 </div>
                 <div className="form-group">
                   <label>PAN Number</label>
@@ -447,7 +447,7 @@ function SARestaurantsTab() {
                 </div>
                 <div className="form-group">
                   <label>Phone</label>
-                  <input value={editModal.phone || ""} onChange={e => setEditModal({ ...editModal, phone: e.target.value })} />
+                  <input type="tel" placeholder="98XXXXXXXX" maxLength={10} value={editModal.phone || ""} onChange={e => setEditModal({ ...editModal, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
                 </div>
                 <div className="form-group">
                   <label>PAN Number</label>

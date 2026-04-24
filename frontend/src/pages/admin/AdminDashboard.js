@@ -1139,7 +1139,7 @@ function TablesTab() {
                     </div>
                     <div className="form-group">
                       <label>Contact Number *</label>
-                      <input placeholder="Phone number" value={editModal.reserved_by_phone || ""} onChange={e => setEditModal({ ...editModal, reserved_by_phone: e.target.value })} />
+                      <input type="tel" placeholder="98XXXXXXXX" maxLength={10} value={editModal.reserved_by_phone || ""} onChange={e => setEditModal({ ...editModal, reserved_by_phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
                     </div>
                   </div>
                 )}
@@ -1666,7 +1666,7 @@ function UsersTab() {
                 </div>
                 <div className="form-grid form-grid-2">
                   <div className="form-group"><label>Email</label><input type="email" placeholder="Optional" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
-                  <div className="form-group"><label>Contact Number</label><input type="tel" placeholder="Phone number" value={form.contact_number} onChange={e => setForm({ ...form, contact_number: e.target.value })} /></div>
+                  <div className="form-group"><label>Contact Number</label><input type="tel" placeholder="98XXXXXXXX" maxLength={10} value={form.contact_number} onChange={e => setForm({ ...form, contact_number: e.target.value.replace(/\D/g, "").slice(0, 10) })} /></div>
                 </div>
                 <div className="form-grid form-grid-2">
                   <div className="form-group">
