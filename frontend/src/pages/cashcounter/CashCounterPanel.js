@@ -886,17 +886,17 @@ function Receipt({ bill, roundColors, groupItemsByRound }) {
         </span>
       </div>
       <div className="receipt-divider-dashed" />
-      <div className="receipt-col-header">
-        <span style={{ flex: 1 }}>ITEM</span>
-        <span style={{ width: 28, textAlign: "center" }}>QTY</span>
-        <span style={{ width: 72, textAlign: "right" }}>AMT</span>
+      <div style={{display:"flex",alignItems:"center"}}>
+        <span style={{flex:1,textAlign:"left",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>ITEM</span>
+        <span style={{width:40,textAlign:"center"}}>QTY</span>
+        <span style={{width:90,textAlign:"right"}}>AMT</span>
       </div>
       <div className="receipt-divider-light" />
       {bill.items?.map((item, i) => (
-        <div key={i} className="receipt-item-row">
-          <span style={{ flex: 1, overflow: "hidden" }}>{item.name}</span>
-          <span style={{ width: 28, textAlign: "center" }}>{item.quantity}</span>
-          <span style={{ width: 72, textAlign: "right" }}>Rs.{Number(item.price).toLocaleString()}</span>
+        <div key={i} style={{display: "flex",alignItems: "center",}}>
+          <span style={{ flex: 1, overflow: "hidden",textOverflow: "ellipsis",whiteSpace: "nowrap", }}>{item.name}</span>
+          <span style={{width:40,textAlign:"center"}}>{item.quantity}</span>
+          <span style={{ width: 90, textAlign: "right" }}>Rs.{Number(item.price).toLocaleString()}</span>
         </div>
       ))}
       <div className="receipt-divider-dashed" />
